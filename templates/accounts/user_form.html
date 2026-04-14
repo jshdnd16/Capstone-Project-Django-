@@ -133,6 +133,12 @@ The form_title variable tells us which action we're doing.
                         {% endfor %}
                     </div>
                 </div>
+                <div class="mt-4 flex items-center gap-2 text-sm text-gray-600">
+                    <input id="show-passwords" type="checkbox"
+                           class="h-4 w-4 rounded border-gray-300 text-mitra-gold focus:ring-mitra-gold"
+                           data-targets="id_password1,id_password2" />
+                    <label for="show-passwords">Show password text</label>
+                </div>
             </div>
             {% endif %}
 
