@@ -1,0 +1,2 @@
+password='Admin@Mitra2024',   # CHANGE THIS after first login!
+fullname='System Administrator

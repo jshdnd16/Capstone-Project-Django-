@@ -1,0 +1,4 @@
+Django
+psycopg2-binary  # → PostgreSQL adapter for Django
+pillow           # → Image handling (for logos, uploads)
+python-decouple  # → Reads .env files for secrets

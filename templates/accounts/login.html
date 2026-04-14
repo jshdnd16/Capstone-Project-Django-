@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% block title %}Login{% endblock %}
+
+{% comment %}
+templates/accounts/login.html
+The login page — shown to unauthenticated users.
+Extends base.html but overrides content to show a centered login card
+(no sidebar since the user isn't logged in yet).
+{% endcomment %}
+
+{% block public_content %}
+
+{# Full-screen centered login layout #}
+<div class="min-h-screen bg-mitra-brown flex items-center justify-center p-4">
+
+    {# Decorative background elements (subtle) #}
+    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute top-0 left-0 w-64 h-64 bg-mitra-gold opacity-5 rounded-full -translate-x-1/2 -translate-y-1/2"></div>
+        <div class="absolute bottom-0 right-0 w-96 h-96 bg-mitra-gold opacity-5 rounded-full translate-x-1/2 translate-y-1/2"></div>
+    </div>
+
+    {# Login card #}
+    <div class="w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden relative z-10">
+
+        {# Gold header bar with logo #}
+        <div class="bg-mitra-gold px-8 py-7 text-center">
+            <div class="w-14 h-14 bg-mitra-brown rounded-xl mx-auto mb-3 flex items-center justify-center">
+                <span class="text-mitra-gold font-bold text-2xl">M</span>
+            </div>
+            <h1 class="font-bold text-mitra-brown text-xl leading-tight">MITRA</h1>
+            <p class="text-mitra-brown text-xs font-medium opacity-70">Planners and Builders Corporation</p>
+        </div>
+
+        {# Form section #}
+        <div class="px-8 py-7">
+            <h2 class="font-semibold text-gray-700 text-center mb-5 text-sm">
+                Sign in to your account
+            </h2>
+
+            <form method="post" action="{% url 'accounts:login' %}" novalidate>
+                {% csrf_token %}
+
+                {# Username field #}
+                <div class="mb-4">
+                    <label for="{{ form.username.id_for_label }}"
+                           class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+                        Username
+                    </label>
+                    {{ form.username }}
+                    {# Show validation errors #}
+                    {% if form.username.errors %}
+                        {% for error in form.username.errors %}
+                        <p class="text-xs text-red-600 mt-1">{{ error }}</p>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+
+                {# Password field #}
+                <div class="mb-6">
+                    <label for="{{ form.password.id_for_label }}"
+                           class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+                        Password
+                    </label>
+                    {{ form.password }}
+                    {% if form.password.errors %}
+                        {% for error in form.password.errors %}
+                        <p class="text-xs text-red-600 mt-1">{{ error }}</p>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+
+                {# Login button #}
+                <button type="submit"
+                        class="w-full bg-mitra-gold hover:bg-mitra-gold-dark
+                               text-mitra-brown font-bold py-3 rounded-lg
+                               transition-colors duration-200 text-sm uppercase tracking-wide
+                               shadow-sm">
+                    Sign In
+                </button>
+
+            </form>
+
+            {# Note: No self-registration link — Admin creates accounts only #}
+            <p class="text-xs text-center text-gray-400 mt-5">
+                Don't have an account? Contact your system administrator.
+            </p>
+        </div>
+
+        {# Footer of card #}
+        <div class="bg-gray-50 px-8 py-3 text-center border-t border-gray-100">
+            <p class="text-xs text-gray-400">Crafting Dreams, Building Reality &mdash; Quezon Province</p>
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

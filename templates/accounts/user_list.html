@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+
+{% comment %}
+templates/accounts/user_list.html
+Shows all user accounts. Admin-only page.
+{% endcomment %}
+
+{% block title %}User Accounts{% endblock %}
+{% block page_header %}User Accounts{% endblock %}
+
+{% block content %}
+
+{# Page header with action button #}
+<div class="flex items-center justify-between mb-6">
+    <div>
+        <h2 class="text-xl font-bold text-gray-800">User Accounts</h2>
+        <p class="text-sm text-gray-500 mt-0.5">Manage all staff accounts</p>
+    </div>
+    <a href="{% url 'accounts:user_create' %}"
+       class="inline-flex items-center gap-2 bg-mitra-gold hover:bg-mitra-gold-dark
+              text-mitra-brown font-semibold text-sm px-4 py-2.5 rounded-lg transition-colors shadow-sm">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path d="M12 4v16m8-8H4"/>
+        </svg>
+        New Account
+    </a>
+</div>
+
+{# Filter bar #}
+<form method="get" class="flex flex-wrap gap-3 mb-5 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+    <select name="department" class="form-input w-auto min-w-36">
+        <option value="">All Departments</option>
+        {% for value, label in departments %}
+        <option value="{{ value }}" {% if department_filter == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    <select name="status" class="form-input w-auto">
+        <option value="">All Statuses</option>
+        <option value="Active"   {% if status_filter == 'Active'   %}selected{% endif %}>Active</option>
+        <option value="Inactive" {% if status_filter == 'Inactive' %}selected{% endif %}>Inactive</option>
+    </select>
+    <button type="submit" class="px-4 py-2 bg-mitra-gold text-mitra-brown text-sm font-semibold rounded-lg hover:bg-mitra-gold-dark transition-colors">
+        Filter
+    </button>
+    <a href="{% url 'accounts:user_list' %}" class="px-4 py-2 bg-gray-100 text-gray-600 text-sm font-semibold rounded-lg hover:bg-gray-200 transition-colors">
+        Clear
+    </a>
+</form>
+
+{# Users table #}
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+    <table class="w-full text-sm">
+        <thead>
+            <tr class="bg-gray-50 border-b border-gray-100">
+                <th class="text-left px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Name</th>
+                <th class="text-left px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Username</th>
+                <th class="text-left px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Role</th>
+                <th class="text-left px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Department</th>
+                <th class="text-left px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Status</th>
+                <th class="text-center px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Actions</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+            {% for u in users %}
+            <tr class="hover:bg-gray-50 transition-colors">
+                <td class="px-5 py-3.5">
+                    <div class="flex items-center gap-3">
+                        {# Avatar with initials #}
+                        <div class="w-8 h-8 rounded-full bg-mitra-gold flex items-center justify-center
+                                    text-mitra-brown font-bold text-xs flex-shrink-0">
+                            {{ u.fullname|slice:":1"|upper }}
+                        </div>
+                        <div>
+                            <div class="font-semibold text-gray-800">{{ u.fullname }}</div>
+                            <div class="text-xs text-gray-400">{{ u.email|default:"—" }}</div>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-5 py-3.5 text-gray-600 font-mono text-xs">{{ u.username }}</td>
+                <td class="px-5 py-3.5">
+                    <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold
+                                 bg-amber-50 text-amber-800">
+                        {{ u.get_role_name }}
+                    </span>
+                </td>
+                <td class="px-5 py-3.5 text-gray-600">{{ u.department }}</td>
+                <td class="px-5 py-3.5">
+                    {% if u.status == 'Active' %}
+                    <span class="badge-active inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold">Active</span>
+                    {% else %}
+                    <span class="badge-inactive inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold">Inactive</span>
+                    {% endif %}
+                </td>
+                <td class="px-5 py-3.5">
+                    <div class="flex items-center justify-center gap-2">
+                        <a href="{% url 'accounts:user_edit' u.pk %}"
+                           class="text-xs text-blue-600 hover:text-blue-800 font-medium">Edit</a>
+                        <span class="text-gray-300">|</span>
+                        {# Toggle active/inactive — requires POST for security #}
+                        <form method="post" action="{% url 'accounts:user_toggle' u.pk %}" class="inline">
+                            {% csrf_token %}
+                            <button type="submit"
+                                    class="text-xs {% if u.status == 'Active' %}text-red-500 hover:text-red-700{% else %}text-green-600 hover:text-green-800{% endif %} font-medium"
+                                    onclick="return confirm('Are you sure?')">
+                                {% if u.status == 'Active' %}Deactivate{% else %}Activate{% endif %}
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="px-5 py-10 text-center text-gray-400">
+                    No user accounts found.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}
