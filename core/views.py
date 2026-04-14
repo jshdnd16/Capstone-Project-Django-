@@ -23,6 +23,16 @@ def dashboard_view(request):
     # Get the current user's role name (safely — role might be None)
     user_role = request.user.get_role_name()
 
+    # Phase 2 stats — import here to avoid circular imports at the top level
+    # We use try/except in case the materials app tables don't exist yet
+    try:
+        from materials.models import Material, Supplier
+        total_materials  = Material.objects.filter(is_active=True).count()
+        total_suppliers  = Supplier.objects.filter(status='Active').count()
+        low_cost_items   = Material.objects.filter(is_active=True, margin_percentage__lt=10).count()
+    except Exception:
+        total_materials = total_suppliers = low_cost_items = 0
+
     # We'll populate these with real data in future phases
     # For now, they're placeholders so the template doesn't crash
     context = {
@@ -34,6 +44,9 @@ def dashboard_view(request):
             'low_stock_items': 0,
             'ongoing_projects': 0,
             'scheduled_deliveries': 0,
+            # Phase 2 stats (available now)
+            'total_materials':  total_materials,
+            'total_suppliers':  total_suppliers,
         }
     }
 

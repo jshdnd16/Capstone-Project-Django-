@@ -21,6 +21,9 @@ urlpatterns = [
 
     # Core app (dashboard, home page)
     path('', include('core.urls', namespace='core')),
+
+    # Materials app (Phase 2) ← ADD THIS LINE
+    path('materials/', include('materials.urls', namespace='materials')),
 ]
 
 # Serve media files during development

@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     # Our custom apps
     'accounts',   # User management, roles, authentication
     'core',       # Dashboard and shared base templates
+    'materials',  # ← ADD THIS — Phase 2: Materials, Categories, Suppliers
 ]
 
 MIDDLEWARE = [
