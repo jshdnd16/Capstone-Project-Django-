@@ -1,7 +1,3 @@
-Removed the scrollbar in the navigation bar in the left side
+Created a delete action in supplier
 
-Include show password functionality
-
-Includes navigation indication
-
-Fixed the logo
+Include description and uploading images when creating a new material
