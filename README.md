@@ -1,7 +1,3 @@
-Removed the scrollbar in the navigation bar in the left side
+Started the Phase 2
 
-Include show password functionality
-
-Includes navigation indication
-
-Fixed the logo
+Created the material app
