@@ -19,7 +19,7 @@
             <p class="text-xs text-gray-400 mt-0.5">All prices in Philippine Peso (₱)</p>
         </div>
 
-        <form method="post" class="px-6 py-6 space-y-5">
+        <form method="post" enctype="multipart/form-data" class="px-6 py-6 space-y-5">
             {% csrf_token %}
 
             {# ── Basic Info ───────────────────────────── #}
@@ -31,6 +31,15 @@
                     </label>
                     {{ form.name }}
                     {% for error in form.name.errors %}<p class="text-xs text-red-600 mt-1">{{ error }}</p>{% endfor %}
+                </div>
+
+                <div class="col-span-2">
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+                        Description
+                    </label>
+                    {{ form.description }}
+                    <p class="text-xs text-gray-400 mt-1">Optional: show product features, usage, or other notes.</p>
+                    {% for error in form.description.errors %}<p class="text-xs text-red-600 mt-1">{{ error }}</p>{% endfor %}
                 </div>
 
                 <div>
@@ -65,6 +74,15 @@
                     {{ form.supplier }}
                     <p class="text-xs text-gray-400 mt-1">Only active suppliers are listed</p>
                     {% for error in form.supplier.errors %}<p class="text-xs text-red-600 mt-1">{{ error }}</p>{% endfor %}
+                </div>
+
+                <div class="col-span-2">
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+                        Product Image
+                    </label>
+                    {{ form.image }}
+                    <p class="text-xs text-gray-400 mt-1">Optional. Upload a photo to show in the catalog.</p>
+                    {% for error in form.image.errors %}<p class="text-xs text-red-600 mt-1">{{ error }}</p>{% endfor %}
                 </div>
 
             </div>
@@ -134,6 +152,12 @@
                 {% for error in form.non_field_errors %}
                 <p class="text-sm text-red-700 font-medium">⚠ {{ error }}</p>
                 {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if material and material.image %}
+            <div class="rounded-3xl overflow-hidden border border-gray-100">
+                <img src="{{ material.image.url }}" alt="{{ material.name }}" class="w-full h-72 object-cover">
             </div>
             {% endif %}
 

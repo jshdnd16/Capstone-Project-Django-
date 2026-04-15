@@ -135,6 +135,16 @@ class Material(models.Model):
         max_length=200,
         help_text="e.g., Buildrite Waterproofing 20kg, Sinclair Permacoat 4L White"
     )
+    description = models.TextField(
+        blank=True,
+        help_text="Short product description, highlights, or usage notes"
+    )
+    image = models.ImageField(
+        upload_to='products/',
+        blank=True,
+        null=True,
+        help_text="Optional product photo to show in the catalog"
+    )
 
     # ForeignKeys use PROTECT so we can't accidentally delete a Category or
     # Supplier that still has materials attached to it.

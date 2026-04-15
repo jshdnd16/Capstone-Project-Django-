@@ -254,6 +254,43 @@ def supplier_toggle_view(request, supplier_id):
     return redirect('materials:supplier_list')
 
 
+@login_required
+@admin_required
+def supplier_delete_view(request, supplier_id):
+    """Delete a supplier if no materials are linked to it."""
+    supplier = get_object_or_404(Supplier, pk=supplier_id)
+    linked_materials = supplier.materials.count()
+
+    if linked_materials > 0:
+        messages.error(
+            request,
+            f"Cannot delete '{supplier.company_name}' because {linked_materials} material(s) are still linked to it. Reassign or remove those materials first."
+        )
+        return redirect('materials:supplier_list')
+
+    if request.method == 'POST':
+        name = supplier.company_name
+        supplier.delete()
+
+        log_action(
+            user=request.user,
+            action_type='DELETE',
+            table_affected='materials_supplier',
+            description=f"Deleted supplier: {name}",
+            request=request
+        )
+
+        messages.success(request, f"Supplier '{name}' deleted.")
+        return redirect('materials:supplier_list')
+
+    return render(request, 'materials/confirm_delete.html', {
+        'object_name': supplier.company_name,
+        'object_type': 'Supplier',
+        'cancel_url': reverse('materials:supplier_list'),
+        'warning': 'Deleting a supplier is permanent and can only happen if no materials are linked to it.',
+    })
+
+
 # ─────────────────────────────────────────────────────────────
 # MATERIAL VIEWS
 # ─────────────────────────────────────────────────────────────
@@ -304,7 +341,7 @@ def material_list_view(request):
 @role_required('Admin', 'Warehouse')
 def material_create_view(request):
     """Add a new material to the catalog. Admin and Warehouse only."""
-    form = MaterialForm(request.POST or None)
+    form = MaterialForm(request.POST or None, request.FILES or None)
 
     if request.method == 'POST' and form.is_valid():
         material = form.save()
@@ -332,7 +369,7 @@ def material_create_view(request):
 def material_edit_view(request, material_id):
     """Edit an existing material."""
     material = get_object_or_404(Material, pk=material_id)
-    form = MaterialForm(request.POST or None, instance=material)
+    form = MaterialForm(request.POST or None, request.FILES or None, instance=material)
 
     if request.method == 'POST' and form.is_valid():
         form.save()

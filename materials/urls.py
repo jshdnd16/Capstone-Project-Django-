@@ -20,6 +20,7 @@ urlpatterns = [
     path('suppliers/create/',                    views.supplier_create_view, name='supplier_create'),
     path('suppliers/<int:supplier_id>/edit/',    views.supplier_edit_view,   name='supplier_edit'),
     path('suppliers/<int:supplier_id>/toggle/',  views.supplier_toggle_view, name='supplier_toggle'),
+    path('suppliers/<int:supplier_id>/delete/',  views.supplier_delete_view, name='supplier_delete'),
 
     # ── Material URLs ──────────────────────────────────
     # The empty path '' maps to /materials/ → material list

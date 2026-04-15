@@ -59,13 +59,19 @@ class MaterialForm(forms.ModelForm):
     class Meta:
         model = Material
         fields = [
-            'sku', 'name', 'category', 'supplier', 'unit',
+            'sku', 'name', 'description', 'image', 'category', 'supplier', 'unit',
             'current_cost', 'selling_price', 'reorder_level',
             'is_sales_inventory', 'is_active',
         ]
         widgets = {
             'sku':              forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Optional: e.g., BW-001'}),
             'name':             forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g., Buildrite Waterproofing 20kg'}),
+            'description':      forms.Textarea(attrs={
+                'class': 'form-input',
+                'rows': 4,
+                'placeholder': 'Optional: product description, specification, or usage notes',
+            }),
+            'image':            forms.ClearableFileInput(attrs={'class': 'form-input'}),
             'category':         forms.Select(attrs={'class': 'form-input'}),
             'supplier':         forms.Select(attrs={'class': 'form-input'}),
             'unit':             forms.Select(attrs={'class': 'form-input'}),
