@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+
+{% comment %}
+templates/inventory/stock_overview.html
+Main inventory dashboard. Shows current stock for every material
+with color-coded alerts for low/out-of-stock items.
+{% endcomment %}
+
+{% block title %}Stock Overview{% endblock %}
+{% block page_header %}Inventory{% endblock %}
+
+{% block content %}
+
+{# ── Page header with action buttons ── #}
+<div class="flex items-center justify-between mb-6">
+    <div>
+        <h2 class="text-xl font-bold text-gray-800">Stock Overview</h2>
+        <p class="text-sm text-gray-500 mt-0.5">{{ total_materials }} materials tracked</p>
+    </div>
+    {% if user.get_role_name == 'Admin' or user.get_role_name == 'Warehouse' %}
+    <div class="flex gap-2">
+        <a href="{% url 'inventory:transaction_history' %}"
+           class="inline-flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200
+                  text-gray-700 font-semibold text-sm px-3 py-2.5 rounded-lg transition-colors">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+            </svg>
+            History
+        </a>
+        <a href="{% url 'inventory:adjustment' %}"
+           class="inline-flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200
+                  text-gray-700 font-semibold text-sm px-3 py-2.5 rounded-lg transition-colors">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+            </svg>
+            Adjust
+        </a>
+        <a href="{% url 'inventory:stock_out' %}"
+           class="inline-flex items-center gap-1.5 bg-red-50 hover:bg-red-100
+                  text-red-700 font-semibold text-sm px-3 py-2.5 rounded-lg transition-colors border border-red-200">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path d="M5 10l7-7m0 0l7 7m-7-7v18"/>
+            </svg>
+            Stock Out
+        </a>
+        <a href="{% url 'inventory:stock_in' %}"
+           class="inline-flex items-center gap-2 bg-mitra-gold hover:bg-mitra-gold-dark
+                  text-mitra-brown font-semibold text-sm px-4 py-2.5 rounded-lg transition-colors shadow-sm">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+            </svg>
+            Stock In
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+{# ── Alert banners ── #}
+{% if out_of_stock > 0 %}
+<div class="mb-4 flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-5 py-3.5">
+    <svg class="w-5 h-5 text-red-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+    </svg>
+    <p class="text-sm font-semibold text-red-800">
+        {{ out_of_stock }} material{{ out_of_stock|pluralize }} out of stock —
+        <a href="?stock_status=out" class="underline hover:no-underline">view items</a>
+    </p>
+</div>
+{% endif %}
+
+{% if low_stock > 0 %}
+<div class="mb-4 flex items-center gap-3 bg-yellow-50 border border-yellow-200 rounded-xl px-5 py-3.5">
+    <svg class="w-5 h-5 text-yellow-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    <p class="text-sm font-semibold text-yellow-800">
+        {{ low_stock }} material{{ low_stock|pluralize }} below reorder level —
+        <a href="?stock_status=low" class="underline hover:no-underline">view items</a>
+    </p>
+</div>
+{% endif %}
+
+{# ── Summary stat cards ── #}
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm text-center">
+        <p class="text-2xl font-bold text-gray-800">{{ total_materials }}</p>
+        <p class="text-xs text-gray-500 mt-1">Total Materials</p>
+    </div>
+    <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm text-center">
+        <p class="text-2xl font-bold {% if out_of_stock > 0 %}text-red-600{% else %}text-gray-800{% endif %}">{{ out_of_stock }}</p>
+        <p class="text-xs text-gray-500 mt-1">Out of Stock</p>
+    </div>
+    <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm text-center">
+        <p class="text-2xl font-bold {% if low_stock > 0 %}text-yellow-600{% else %}text-gray-800{% endif %}">{{ low_stock }}</p>
+        <p class="text-xs text-gray-500 mt-1">Low Stock</p>
+    </div>
+    <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm text-center">
+        <p class="text-2xl font-bold {% if untracked_count > 0 %}text-blue-600{% else %}text-gray-800{% endif %}">{{ untracked_count }}</p>
+        <p class="text-xs text-gray-500 mt-1">Not Yet Tracked</p>
+    </div>
+</div>
+
+{# ── Filter bar ── #}
+<form method="get" class="flex flex-wrap gap-3 mb-5 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+    <input type="text" name="search" value="{{ search }}"
+           class="form-input flex-1 min-w-44"
+           placeholder="Search by name or SKU...">
+
+    <select name="category" class="form-input w-auto min-w-44">
+        <option value="">All Categories</option>
+        {% for cat in categories %}
+        <option value="{{ cat.pk }}" {% if category_filter == cat.pk|stringformat:"i" %}selected{% endif %}>
+            {{ cat.category_name }}
+        </option>
+        {% endfor %}
+    </select>
+
+    <select name="stock_status" class="form-input w-auto">
+        <option value="">All Statuses</option>
+        <option value="out" {% if status_filter == 'out' %}selected{% endif %}>Out of Stock</option>
+        <option value="low" {% if status_filter == 'low' %}selected{% endif %}>Low Stock</option>
+        <option value="ok"  {% if status_filter == 'ok'  %}selected{% endif %}>In Stock (OK)</option>
+    </select>
+
+    <button type="submit"
+            class="px-4 py-2 bg-mitra-gold text-mitra-brown text-sm font-semibold rounded-lg hover:bg-mitra-gold-dark transition-colors">
+        Filter
+    </button>
+    <a href="{% url 'inventory:stock_overview' %}"
+       class="px-4 py-2 bg-gray-100 text-gray-600 text-sm font-semibold rounded-lg hover:bg-gray-200 transition-colors">
+        Clear
+    </a>
+</form>
+
+{# ── Main Stock Table ── #}
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+    <table class="w-full text-sm">
+        <thead>
+            <tr class="bg-gray-50 border-b border-gray-100">
+                <th class="text-left px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Material</th>
+                <th class="text-left px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Category</th>
+                <th class="text-center px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Current Stock</th>
+                <th class="text-center px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Reorder At</th>
+                <th class="text-center px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Status</th>
+                {% if user.get_role_name == 'Admin' or user.get_role_name == 'Warehouse' %}
+                <th class="text-right px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Stock Value</th>
+                {% endif %}
+                <th class="text-center px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Actions</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+            {% for inv in inventory_list %}
+            <tr class="hover:bg-gray-50 transition-colors
+                       {% if inv.is_out_of_stock %}bg-red-50{% elif inv.is_low_stock %}bg-yellow-50{% endif %}">
+                <td class="px-5 py-3.5">
+                    <div class="font-semibold text-gray-800">{{ inv.material.name }}</div>
+                    {% if inv.material.sku %}
+                    <div class="text-xs text-gray-400 font-mono">{{ inv.material.sku }}</div>
+                    {% endif %}
+                </td>
+                <td class="px-5 py-3.5 text-xs text-gray-500">{{ inv.material.category.category_name }}</td>
+                <td class="px-5 py-3.5 text-center">
+                    <span class="text-lg font-bold
+                        {% if inv.is_out_of_stock %}text-red-600
+                        {% elif inv.is_low_stock  %}text-yellow-600
+                        {% else                   %}text-gray-800{% endif %}">
+                        {{ inv.quantity }}
+                    </span>
+                    <span class="text-xs text-gray-400 ml-1">{{ inv.material.unit }}</span>
+                </td>
+                <td class="px-5 py-3.5 text-center text-xs text-gray-500">
+                    {{ inv.material.reorder_level }} {{ inv.material.unit }}
+                </td>
+                <td class="px-5 py-3.5 text-center">
+                    {% if inv.is_out_of_stock %}
+                        <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700">
+                            Out of Stock
+                        </span>
+                    {% elif inv.is_low_stock %}
+                        <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700">
+                            Low Stock
+                        </span>
+                    {% else %}
+                        <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700">
+                            In Stock
+                        </span>
+                    {% endif %}
+                </td>
+                {% if user.get_role_name == 'Admin' or user.get_role_name == 'Warehouse' %}
+                <td class="px-5 py-3.5 text-right font-mono text-xs text-gray-600">
+                    ₱{{ inv.stock_value|floatformat:2 }}
+                </td>
+                {% endif %}
+                <td class="px-5 py-3.5">
+                    <div class="flex items-center justify-center gap-2">
+                        {# View the full stock card for this material #}
+                        <a href="{% url 'inventory:material_detail' inv.material.pk %}"
+                           class="text-xs text-blue-600 hover:text-blue-800 font-medium">Detail</a>
+                        {% if user.get_role_name == 'Admin' or user.get_role_name == 'Warehouse' %}
+                        <span class="text-gray-300">|</span>
+                        {# Quick Stock In — pre-fills the material on the form #}
+                        <a href="{% url 'inventory:stock_in' %}?material={{ inv.material.pk }}"
+                           class="text-xs text-green-600 hover:text-green-800 font-medium">+ In</a>
+                        <span class="text-gray-300">|</span>
+                        {# Quick Stock Out — pre-fills the material on the form #}
+                        <a href="{% url 'inventory:stock_out' %}?material={{ inv.material.pk }}"
+                           class="text-xs text-red-500 hover:text-red-700 font-medium">− Out</a>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" class="px-5 py-10 text-center text-gray-400">
+                    No inventory records found.
+                    {% if search or category_filter or status_filter %}
+                    <a href="{% url 'inventory:stock_overview' %}" class="text-mitra-gold hover:underline ml-1">Clear filters</a>
+                    {% elif user.get_role_name == 'Admin' or user.get_role_name == 'Warehouse' %}
+                    <a href="{% url 'inventory:stock_in' %}" class="text-mitra-gold hover:underline ml-1">Record the first stock-in</a>.
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

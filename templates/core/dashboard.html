@@ -44,15 +44,15 @@ In Phase 4+, the stats will be populated with real database queries.
     </div>
     {% endif %}
 
-    {# Card 2: Low Stock Items (Warehouse) #}
+    {# Card 2: Low Stock Items — NOW LIVE #}
     {% if user.get_role_name == 'Admin' or user.get_role_name == 'Warehouse' or user.get_role_name == 'Sales' %}
     <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
         <div class="flex items-start justify-between">
             <div>
-                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-                    Low Stock Items
+                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Low Stock Items</p>
+                <p class="text-3xl font-bold {% if stats.low_stock_items > 0 %}text-yellow-600{% else %}text-gray-800{% endif %}">
+                    {{ stats.low_stock_items }}
                 </p>
-                <p class="text-3xl font-bold text-gray-800">{{ stats.low_stock_items }}</p>
             </div>
             <div class="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center">
                 <svg class="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -60,7 +60,8 @@ In Phase 4+, the stats will be populated with real database queries.
                 </svg>
             </div>
         </div>
-        <p class="text-xs text-gray-400 mt-3">Available in Phase 3</p>
+        <a href="{% url 'inventory:stock_overview' %}?stock_status=low"
+           class="text-xs text-mitra-gold hover:underline mt-3 block">View low stock items →</a>
     </div>
     {% endif %}
 
@@ -144,9 +145,9 @@ In Phase 4+, the stats will be populated with real database queries.
         {% endif %}
 
         <div class="flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-gray-300"></span>
-            <span class="text-gray-400">Phase 3: Inventory Management</span>
-            <span class="ml-auto text-xs text-gray-400">Upcoming</span>
+            <span class="w-2 h-2 rounded-full bg-green-400"></span>
+            <span class="text-gray-600">Phase 3: Inventory Management</span>
+            <span class="ml-auto text-xs font-semibold text-green-600">✓ Complete</span>
         </div>
         <div class="flex items-center gap-2">
             <span class="w-2 h-2 rounded-full bg-gray-300"></span>

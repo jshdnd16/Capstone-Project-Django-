@@ -27,11 +27,31 @@ def dashboard_view(request):
     # We use try/except in case the materials app tables don't exist yet
     try:
         from materials.models import Material, Supplier
+        from inventory.models import Inventory
+        from django.db.models import F
+
         total_materials  = Material.objects.filter(is_active=True).count()
         total_suppliers  = Supplier.objects.filter(status='Active').count()
         low_cost_items   = Material.objects.filter(is_active=True, margin_percentage__lt=10).count()
+    
+        # Low-stock count: quantity above 0 but at or below reorder level
+        low_stock_items = Inventory.objects.filter(
+            quantity__gt=0,
+            quantity__lte=F('material__reorder_level'),
+            material__is_active=True
+        ).count()
+
+        # Out-of-stock: quantity at 0 or below
+        out_of_stock = Inventory.objects.filter(
+            quantity__lte=0,
+            material__is_active=True
+        ).count()
+    
+    # except Exception:
+    #     total_materials = total_suppliers = low_cost_items = 0
+
     except Exception:
-        total_materials = total_suppliers = low_cost_items = 0
+        total_materials = total_suppliers = low_stock_items = out_of_stock = 0
 
     # We'll populate these with real data in future phases
     # For now, they're placeholders so the template doesn't crash
@@ -47,6 +67,7 @@ def dashboard_view(request):
             # Phase 2 stats (available now)
             'total_materials':  total_materials,
             'total_suppliers':  total_suppliers,
+            'out_of_stock': out_of_stock,
         }
     }
 

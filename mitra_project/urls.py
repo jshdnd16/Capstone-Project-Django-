@@ -24,6 +24,9 @@ urlpatterns = [
 
     # Materials app (Phase 2) ← ADD THIS LINE
     path('materials/', include('materials.urls', namespace='materials')),
+
+    # Inventory app (Phase 3) ← ADD THIS LINE
+    path('inventory/', include('inventory.urls', namespace='inventory')),
 ]
 
 # Serve media files during development
