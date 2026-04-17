@@ -1,0 +1,229 @@
+{% extends 'base.html' %}
+{% block title %}Order #{{ order.pk }}{% endblock %}
+{% block page_header %}Order #{{ order.pk }}{% endblock %}
+
+{% block content %}
+
+{# Breadcrumb #}
+<div class="flex items-center gap-2 text-xs text-gray-400 mb-5">
+    <a href="{% url 'sales:order_list' %}" class="hover:text-mitra-gold transition-colors">Orders</a>
+    <span>›</span>
+    <span class="text-gray-600">Order #{{ order.pk }}</span>
+</div>
+
+{# ── Top row: order meta + status actions ── #}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+
+    {# Order header card #}
+    <div class="lg:col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+        <div class="flex items-start justify-between mb-4">
+            <div>
+                <h2 class="text-xl font-bold text-gray-800">Order #{{ order.pk }}</h2>
+                <p class="text-sm text-gray-500">{{ order.order_date|date:"F d, Y — g:i A" }}</p>
+            </div>
+            {# Status badge #}
+            <span class="inline-block px-3 py-1 rounded-full text-sm font-bold
+                {% if order.status == 'Pending'          %}bg-yellow-100 text-yellow-800
+                {% elif order.status == 'Confirmed'       %}bg-blue-100 text-blue-800
+                {% elif order.status == 'Preparing'       %}bg-orange-100 text-orange-800
+                {% elif order.status == 'Out for Delivery'%}bg-purple-100 text-purple-800
+                {% elif order.status == 'Completed'       %}bg-green-100 text-green-800
+                {% elif order.status == 'Cancelled'       %}bg-red-100 text-red-700
+                {% else %}bg-gray-100 text-gray-600{% endif %}">
+                {{ order.status }}
+            </span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+            <div>
+                <span class="text-gray-500 text-xs uppercase tracking-wide font-semibold">Client</span>
+                <p class="font-semibold text-gray-800 mt-0.5">{{ order.client.client_name }}</p>
+                <p class="text-xs text-gray-400">{{ order.client.phone }}</p>
+            </div>
+            <div>
+                <span class="text-gray-500 text-xs uppercase tracking-wide font-semibold">Created By</span>
+                <p class="font-semibold text-gray-800 mt-0.5">{{ order.created_by.fullname|default:"—" }}</p>
+                <p class="text-xs text-gray-400">{{ order.created_by.get_role_name }}</p>
+            </div>
+            <div>
+                <span class="text-gray-500 text-xs uppercase tracking-wide font-semibold">Order Type</span>
+                <p class="font-medium text-gray-700 mt-0.5">{{ order.order_type }}</p>
+            </div>
+            <div>
+                <span class="text-gray-500 text-xs uppercase tracking-wide font-semibold">Delivery Zone</span>
+                <p class="font-medium text-gray-700 mt-0.5">{{ order.client.delivery_zone }}</p>
+            </div>
+        </div>
+
+        {% if order.notes %}
+        <div class="mt-4 pt-4 border-t border-gray-100">
+            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Notes</span>
+            <p class="text-sm text-gray-600 mt-1">{{ order.notes }}</p>
+        </div>
+        {% endif %}
+    </div>
+
+    {# Right column: totals + payment + status actions #}
+    <div class="space-y-4">
+
+        {# Total + payment status card #}
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Order Total</p>
+            <p class="text-3xl font-bold text-gray-800 mb-1">₱{{ order.total_amount|floatformat:2 }}</p>
+            <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold
+                {% if order.payment_status == 'Paid'    %}bg-green-100 text-green-700
+                {% elif order.payment_status == 'Partial'%}bg-yellow-100 text-yellow-700
+                {% else %}bg-red-50 text-red-600{% endif %}">
+                {{ order.payment_status }}
+            </span>
+
+            {# Payment status quick-update #}
+            {% if order.status != 'Cancelled' and user.get_role_name != 'Warehouse' %}
+            <form method="post" action="{% url 'sales:order_update_payment' order.pk %}" class="mt-4 flex gap-2">
+                {% csrf_token %}
+                {{ payment_form.payment_status }}
+                <button type="submit"
+                        class="px-3 py-2 bg-mitra-gold hover:bg-mitra-gold-dark text-mitra-brown
+                               text-xs font-bold rounded-lg transition-colors whitespace-nowrap">
+                    Update
+                </button>
+            </form>
+            {% endif %}
+        </div>
+
+        {# Status advancement card #}
+        {% if next_statuses and user.get_role_name != 'Warehouse' %}
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Advance Status</p>
+            <div class="space-y-2">
+                {% for next_status in next_statuses %}
+                <form method="post" action="{% url 'sales:order_update_status' order.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="new_status" value="{{ next_status }}">
+                    <button type="submit"
+                            class="w-full py-2.5 text-sm font-bold rounded-lg transition-colors
+                                {% if next_status == 'Cancelled' %}
+                                    bg-red-50 hover:bg-red-100 text-red-700 border border-red-200
+                                {% elif next_status == 'Preparing' %}
+                                    bg-orange-500 hover:bg-orange-600 text-white
+                                {% elif next_status == 'Completed' %}
+                                    bg-green-600 hover:bg-green-700 text-white
+                                {% else %}
+                                    bg-mitra-gold hover:bg-mitra-gold-dark text-mitra-brown
+                                {% endif %}"
+                            {% if next_status == 'Preparing' %}
+                            onclick="return confirm('Moving to Preparing will deduct stock from inventory. Continue?')"
+                            {% endif %}>
+                        Move to: {{ next_status }}
+                        {% if next_status == 'Preparing' %}<span class="text-xs font-normal block opacity-80">⚠ Stock will be deducted</span>{% endif %}
+                    </button>
+                </form>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {# Edit items / cancel — only for Pending orders #}
+        {% if order.can_edit_items and user.get_role_name != 'Warehouse' %}
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 space-y-2">
+            <a href="{% url 'sales:order_edit_items' order.pk %}"
+               class="block w-full text-center py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700
+                      text-sm font-semibold rounded-lg transition-colors border border-blue-200">
+                ✏ Edit Items
+            </a>
+            <form method="post" action="{% url 'sales:order_cancel' order.pk %}">
+                {% csrf_token %}
+                <button type="submit"
+                        class="w-full py-2 bg-gray-100 hover:bg-red-50 text-gray-500 hover:text-red-600
+                               text-xs font-semibold rounded-lg transition-colors border border-gray-200"
+                        onclick="return confirm('Cancel this order?')">
+                    Cancel Order
+                </button>
+            </form>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+{# ── Order items table ── #}
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+        <h3 class="font-bold text-gray-700">Order Items</h3>
+        <span class="text-xs text-gray-400">{{ items.count }} line item{{ items.count|pluralize }}</span>
+    </div>
+    <table class="w-full text-sm">
+        <thead>
+            <tr class="bg-gray-50 border-b border-gray-100">
+                <th class="text-left px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Material</th>
+                <th class="text-left px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Category</th>
+                <th class="text-right px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Qty</th>
+                <th class="text-right px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Price/Unit</th>
+                <th class="text-right px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Subtotal</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+            {% for item in items %}
+            <tr class="hover:bg-gray-50">
+                <td class="px-5 py-3.5">
+                    <div class="font-semibold text-gray-800 text-sm">{{ item.material.name }}</div>
+                    {% if item.material.sku %}<div class="text-xs text-gray-400 font-mono">{{ item.material.sku }}</div>{% endif %}
+                </td>
+                <td class="px-5 py-3.5 text-xs text-gray-500">{{ item.material.category.category_name }}</td>
+                <td class="px-5 py-3.5 text-right font-semibold text-gray-700">
+                    {{ item.quantity }} <span class="text-xs text-gray-400 font-normal">{{ item.material.unit }}</span>
+                </td>
+                <td class="px-5 py-3.5 text-right font-mono text-sm text-gray-600">₱{{ item.price_at_sale|floatformat:2 }}</td>
+                <td class="px-5 py-3.5 text-right font-mono font-bold text-gray-800">₱{{ item.subtotal|floatformat:2 }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="px-5 py-8 text-center text-gray-400">No items on this order.</td></tr>
+            {% endfor %}
+        </tbody>
+        <tfoot class="border-t-2 border-gray-200">
+            <tr class="bg-gray-50">
+                <td colspan="4" class="px-5 py-3.5 text-right font-bold text-gray-700 uppercase tracking-wide text-sm">Order Total</td>
+                <td class="px-5 py-3.5 text-right font-mono font-bold text-xl text-gray-900">₱{{ order.total_amount|floatformat:2 }}</td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
+
+{# ── Status timeline ── #}
+<div class="mt-6 bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+    <h3 class="font-bold text-gray-700 mb-5 text-sm uppercase tracking-wide">Order Status Timeline</h3>
+    <div class="flex items-center gap-0 overflow-x-auto">
+        {% for step in status_steps %}
+        <div class="flex items-center flex-shrink-0">
+            <div class="flex flex-col items-center">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold
+                    {% if order.status == step %}ring-2 ring-offset-2 ring-mitra-gold bg-mitra-gold text-mitra-brown
+                    {% elif order.status == 'Cancelled' %}bg-gray-200 text-gray-400
+                    {% elif step == 'Pending' and order.status != 'Pending' %}bg-green-500 text-white
+                    {% elif step == 'Confirmed' and order.status in 'Preparing,Out for Delivery,Completed' %}bg-green-500 text-white
+                    {% elif step == 'Preparing' and order.status in 'Out for Delivery,Completed' %}bg-green-500 text-white
+                    {% elif step == 'Out for Delivery' and order.status == 'Completed' %}bg-green-500 text-white
+                    {% else %}bg-gray-200 text-gray-400{% endif %}">
+                    ✓
+                </div>
+                <p class="text-xs text-gray-500 mt-1 text-center whitespace-nowrap">{{ step }}</p>
+            </div>
+            {% if not forloop.last %}
+            <div class="h-0.5 w-8 sm:w-12
+                {% if order.status == 'Cancelled' %}bg-gray-200
+                {% elif step == 'Pending' and order.status != 'Pending' %}bg-green-400
+                {% elif step == 'Confirmed' and order.status in 'Preparing,Out for Delivery,Completed' %}bg-green-400
+                {% elif step == 'Preparing' and order.status in 'Out for Delivery,Completed' %}bg-green-400
+                {% elif step == 'Out for Delivery' and order.status == 'Completed' %}bg-green-400
+                {% else %}bg-gray-200{% endif %}
+                flex-shrink-0 mx-1"></div>
+            {% endif %}
+        </div>
+        {% endfor %}
+        {% if order.status == 'Cancelled' %}
+        <div class="ml-4 px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold flex-shrink-0">CANCELLED</div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

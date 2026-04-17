@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block title %}{{ form_title }}{% endblock %}
+{% block page_header %}{{ form_title }}{% endblock %}
+
+{% block content %}
+
+<div class="flex items-center gap-2 text-xs text-gray-400 mb-5">
+    <a href="{% url 'sales:client_list' %}" class="hover:text-mitra-gold transition-colors">Clients</a>
+    <span>›</span>
+    <span class="text-gray-600">{{ form_title }}</span>
+</div>
+
+<div class="max-w-2xl">
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        <div class="bg-mitra-brown px-6 py-4">
+            <h2 class="font-bold text-white">{{ form_title }}</h2>
+        </div>
+        <form method="post" class="px-6 py-6 space-y-5">
+            {% csrf_token %}
+            <div class="grid grid-cols-2 gap-4">
+
+                <div class="col-span-2">
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Client / Store Name <span class="text-red-500">*</span></label>
+                    {{ form.client_name }}
+                    {% for e in form.client_name.errors %}<p class="text-xs text-red-600 mt-1">{{ e }}</p>{% endfor %}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Contact Person</label>
+                    {{ form.contact_person }}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Phone <span class="text-red-500">*</span></label>
+                    {{ form.phone }}
+                    {% for e in form.phone.errors %}<p class="text-xs text-red-600 mt-1">{{ e }}</p>{% endfor %}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Client Type</label>
+                    {{ form.client_type }}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Delivery Zone</label>
+                    {{ form.delivery_zone }}
+                </div>
+
+                <div class="col-span-2">
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Address</label>
+                    {{ form.address }}
+                </div>
+
+                <div class="col-span-2">
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Notes</label>
+                    {{ form.notes }}
+                </div>
+
+                {% if client %}
+                <div class="flex items-center gap-3">
+                    {{ form.is_active }}
+                    <label for="{{ form.is_active.id_for_label }}" class="text-sm text-gray-700 cursor-pointer">Active client</label>
+                </div>
+                {% endif %}
+
+            </div>
+
+            {% if form.non_field_errors %}
+            <div class="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+                {% for e in form.non_field_errors %}<p class="text-sm text-red-700">{{ e }}</p>{% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="flex gap-3 pt-2">
+                <button type="submit" class="px-6 py-2.5 bg-mitra-gold hover:bg-mitra-gold-dark text-mitra-brown font-bold text-sm rounded-lg transition-colors shadow-sm">
+                    {% if client %}Save Changes{% else %}Add Client{% endif %}
+                </button>
+                <a href="{% url 'sales:client_list' %}" class="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-sm rounded-lg transition-colors">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

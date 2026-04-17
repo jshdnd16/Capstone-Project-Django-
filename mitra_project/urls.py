@@ -27,6 +27,9 @@ urlpatterns = [
 
     # Inventory app (Phase 3) ← ADD THIS LINE
     path('inventory/', include('inventory.urls', namespace='inventory')),
+
+    # Sales app (Phase 4) ← ADD THIS LINE
+    path('sales/', include('sales.urls', namespace='sales')),
 ]
 
 # Serve media files during development

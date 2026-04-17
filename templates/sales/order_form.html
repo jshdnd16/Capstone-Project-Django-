@@ -1,0 +1,299 @@
+{% extends 'base.html' %}
+{% block title %}{{ form_title }}{% endblock %}
+{% block page_header %}{{ form_title }}{% endblock %}
+
+{% block content %}
+
+<div class="flex items-center gap-2 text-xs text-gray-400 mb-5">
+    <a href="{% url 'sales:order_list' %}" class="hover:text-mitra-gold transition-colors">Orders</a>
+    <span>›</span>
+    <span class="text-gray-600">{{ form_title }}</span>
+</div>
+
+<form method="post" id="order-form">
+    {% csrf_token %}
+    {{ item_formset.management_form }}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        {# ── Left: Order Header (only on create) ── #}
+        <div class="lg:col-span-1 space-y-4">
+
+            {% if order_form %}
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="bg-mitra-brown px-5 py-4">
+                    <h3 class="font-bold text-white text-sm">Order Details</h3>
+                </div>
+                <div class="p-5 space-y-4">
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+                            Client <span class="text-red-500">*</span>
+                        </label>
+                        {{ order_form.client }}
+                        {% for e in order_form.client.errors %}<p class="text-xs text-red-600 mt-1">{{ e }}</p>{% endfor %}
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Order Type</label>
+                        {{ order_form.order_type }}
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Payment Status</label>
+                        {{ order_form.payment_status }}
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Notes</label>
+                        {{ order_form.notes }}
+                    </div>
+
+                </div>
+            </div>
+            {% else %}
+            {# Editing items on existing order — show order summary #}
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+                <h3 class="font-bold text-gray-700 mb-3 text-sm">Order #{{ order.pk }}</h3>
+                <div class="text-sm space-y-1">
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Client</span>
+                        <span class="font-semibold">{{ order.client.client_name }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Status</span>
+                        <span class="font-semibold">{{ order.status }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Current Total</span>
+                        <span class="font-bold">₱{{ order.total_amount|floatformat:2 }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {# Running total (updated by JS) #}
+            <div class="bg-mitra-brown rounded-xl p-5 text-white">
+                <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Order Total</p>
+                <p class="text-3xl font-bold" id="grand-total">₱0.00</p>
+                <p class="text-xs text-gray-400 mt-2" id="item-count">0 items</p>
+            </div>
+
+            <button type="submit"
+                    class="w-full py-3 bg-mitra-gold hover:bg-mitra-gold-dark text-mitra-brown
+                           font-bold text-sm rounded-xl transition-colors shadow-sm">
+                {% if order %}Save Changes{% else %}Create Order{% endif %}
+            </button>
+            <a href="{% url 'sales:order_list' %}"
+               class="block w-full py-3 text-center bg-white hover:bg-gray-50 text-gray-600
+                      font-semibold text-sm rounded-xl transition-colors border border-gray-200">
+                Cancel
+            </a>
+        </div>
+
+        {# ── Right: Order Items Formset ── #}
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="bg-gray-50 border-b border-gray-100 px-5 py-4 flex items-center justify-between">
+                    <h3 class="font-bold text-gray-700 text-sm">Order Items</h3>
+                    <button type="button" id="add-item-btn"
+                            class="inline-flex items-center gap-1.5 text-xs font-semibold
+                                   text-mitra-brown bg-mitra-gold hover:bg-mitra-gold-dark
+                                   px-3 py-1.5 rounded-lg transition-colors">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 4v16m8-8H4"/></svg>
+                        Add Item
+                    </button>
+                </div>
+
+                {# Column headers #}
+                <div class="grid grid-cols-12 gap-2 px-5 py-2 bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <div class="col-span-5">Material</div>
+                    <div class="col-span-2 text-right">Qty</div>
+                    <div class="col-span-3 text-right">Price / Unit (₱)</div>
+                    <div class="col-span-1 text-right">Subtotal</div>
+                    <div class="col-span-1"></div>
+                </div>
+
+                {# Formset rows #}
+                <div id="formset-container" class="divide-y divide-gray-50">
+                    {% for item_form in item_formset %}
+                    <div class="formset-row grid grid-cols-12 gap-2 px-5 py-3 items-center
+                                {% if item_form.instance.pk %}{% else %}{% endif %}">
+                        {{ item_form.id }}
+                        <div class="col-span-5">
+                            {{ item_form.material }}
+                            {% for e in item_form.material.errors %}<p class="text-xs text-red-600">{{ e }}</p>{% endfor %}
+                        </div>
+                        <div class="col-span-2">
+                            {{ item_form.quantity }}
+                            {% for e in item_form.quantity.errors %}<p class="text-xs text-red-600">{{ e }}</p>{% endfor %}
+                        </div>
+                        <div class="col-span-3">
+                            {{ item_form.price_at_sale }}
+                            {% for e in item_form.price_at_sale.errors %}<p class="text-xs text-red-600">{{ e }}</p>{% endfor %}
+                        </div>
+                        <div class="col-span-1 text-right font-mono text-xs font-bold text-gray-700 row-subtotal">
+                            ₱0.00
+                        </div>
+                        <div class="col-span-1 text-center">
+                            {% if item_form.can_delete %}
+                            <label class="cursor-pointer text-gray-300 hover:text-red-500 transition-colors">
+                                {{ item_form.DELETE }}
+                                <svg class="w-4 h-4 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </label>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                {# Formset non-field errors #}
+                {% for e in item_formset.non_form_errors %}
+                <div class="px-5 py-2"><p class="text-sm text-red-600">{{ e }}</p></div>
+                {% endfor %}
+
+                {# Hidden empty form used as template for JS row cloning #}
+                <div id="empty-form-template" class="hidden">
+                    <div class="formset-row grid grid-cols-12 gap-2 px-5 py-3 items-center">
+                        {{ item_formset.empty_form.id }}
+                        <div class="col-span-5">{{ item_formset.empty_form.material }}</div>
+                        <div class="col-span-2">{{ item_formset.empty_form.quantity }}</div>
+                        <div class="col-span-3">{{ item_formset.empty_form.price_at_sale }}</div>
+                        <div class="col-span-1 text-right font-mono text-xs font-bold text-gray-700 row-subtotal">₱0.00</div>
+                        <div class="col-span-1 text-center">
+                            <button type="button" class="remove-row-btn text-gray-300 hover:text-red-500 transition-colors">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="px-5 py-3 bg-gray-50 border-t border-gray-100 flex justify-end">
+                    <div class="text-sm text-gray-500">
+                        Total: <span class="font-bold text-gray-800 text-base" id="footer-total">₱0.00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ─────────────────────────────────────────────────────────────
+// Material price auto-fill + running total calculator
+// ─────────────────────────────────────────────────────────────
+
+// Materials data: {id: {name, selling_price, unit}}
+const MATERIALS = {};
+try {
+    const raw = {{ materials_json|safe }};
+    raw.forEach(m => { MATERIALS[String(m.id)] = m; });
+} catch(e) { console.warn('Materials JSON parse error', e); }
+
+// Read the TOTAL_FORMS counter managed by Django's formset
+const mgmtTotalForms = document.querySelector('[name$="TOTAL_FORMS"]');
+
+function formatCurrency(n) {
+    return '₱' + parseFloat(n || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+// Recalculate all row subtotals and the grand total
+function recalcAll() {
+    let grand = 0;
+    let itemCount = 0;
+
+    document.querySelectorAll('.formset-row').forEach(row => {
+        // Skip rows marked for deletion
+        const delChk = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
+        if (delChk && delChk.checked) {
+            row.style.opacity = '0.4';
+            row.querySelector('.row-subtotal').textContent = '—';
+            return;
+        }
+        row.style.opacity = '1';
+
+        const qtyEl   = row.querySelector('.qty-input, input[name$="-quantity"]');
+        const priceEl = row.querySelector('.price-input, input[name$="-price_at_sale"]');
+        const subEl   = row.querySelector('.row-subtotal');
+
+        const qty   = parseFloat(qtyEl?.value)   || 0;
+        const price = parseFloat(priceEl?.value)  || 0;
+        const sub   = qty * price;
+
+        if (subEl) subEl.textContent = formatCurrency(sub);
+        if (qty > 0 && price > 0) { grand += sub; itemCount++; }
+    });
+
+    const gt = document.getElementById('grand-total');
+    const ft = document.getElementById('footer-total');
+    const ic = document.getElementById('item-count');
+    if (gt) gt.textContent = formatCurrency(grand);
+    if (ft) ft.textContent = formatCurrency(grand);
+    if (ic) ic.textContent = itemCount + ' item' + (itemCount !== 1 ? 's' : '');
+}
+
+// Auto-fill selling price when a material is selected
+function bindMaterialSelect(select) {
+    select.addEventListener('change', function() {
+        const mat   = MATERIALS[this.value];
+        const row   = this.closest('.formset-row');
+        const price = row?.querySelector('.price-input, input[name$="-price_at_sale"]');
+        if (mat && price && !price.value) {
+            price.value = parseFloat(mat.selling_price).toFixed(2);
+        }
+        recalcAll();
+    });
+}
+
+// Bind qty/price inputs for live recalc
+function bindRowInputs(row) {
+    row.querySelectorAll('input[type="number"], select').forEach(el => {
+        el.addEventListener('input', recalcAll);
+        el.addEventListener('change', recalcAll);
+    });
+    const matSel = row.querySelector('.material-select, select[name$="-material"]');
+    if (matSel) bindMaterialSelect(matSel);
+}
+
+// Add new item row by cloning the empty template
+document.getElementById('add-item-btn')?.addEventListener('click', function() {
+    const total   = parseInt(mgmtTotalForms.value);
+    const template = document.getElementById('empty-form-template').innerHTML;
+    // Replace the __prefix__ placeholder Django uses in the empty form
+    const newRow  = template.replace(/__prefix__/g, total);
+
+    const container = document.getElementById('formset-container');
+    const div = document.createElement('div');
+    div.innerHTML = newRow;
+    const row = div.firstElementChild;
+    container.appendChild(row);
+
+    mgmtTotalForms.value = total + 1;
+    bindRowInputs(row);
+
+    // Remove-button on dynamically added rows
+    row.querySelector('.remove-row-btn')?.addEventListener('click', function() {
+        row.remove();
+        recalcAll();
+    });
+
+    recalcAll();
+});
+
+// Handle DELETE checkboxes on existing rows (hide visually)
+document.querySelectorAll('input[type="checkbox"][name$="-DELETE"]').forEach(chk => {
+    chk.classList.add('hidden');   // The SVG × acts as the visual
+    chk.addEventListener('change', recalcAll);
+});
+
+// Initial setup on page load
+document.querySelectorAll('.formset-row').forEach(row => bindRowInputs(row));
+recalcAll();
+</script>
+{% endblock %}

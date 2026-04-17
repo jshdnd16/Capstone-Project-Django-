@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% block title %}Clients{% endblock %}
+{% block page_header %}Clients{% endblock %}
+
+{% block content %}
+
+<div class="flex items-center justify-between mb-6">
+    <div>
+        <h2 class="text-xl font-bold text-gray-800">Client Directory</h2>
+        <p class="text-sm text-gray-500 mt-0.5">{{ clients.count }} active client{{ clients.count|pluralize }}</p>
+    </div>
+    {% if user.get_role_name == 'Admin' or user.get_role_name == 'Sales' %}
+    <a href="{% url 'sales:client_create' %}"
+       class="inline-flex items-center gap-2 bg-mitra-gold hover:bg-mitra-gold-dark
+              text-mitra-brown font-semibold text-sm px-4 py-2.5 rounded-lg transition-colors shadow-sm">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 4v16m8-8H4"/></svg>
+        Add Client
+    </a>
+    {% endif %}
+</div>
+
+{# Filter bar #}
+<form method="get" class="flex flex-wrap gap-3 mb-5 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+    <input type="text" name="search" value="{{ search }}"
+           class="form-input flex-1 min-w-44" placeholder="Search name, contact, phone...">
+    <select name="type" class="form-input w-auto">
+        <option value="">All Types</option>
+        <option value="Hardware Store" {% if type_filter == 'Hardware Store' %}selected{% endif %}>Hardware Store</option>
+        <option value="Walk-in"        {% if type_filter == 'Walk-in'        %}selected{% endif %}>Walk-in</option>
+        <option value="Contractor"     {% if type_filter == 'Contractor'     %}selected{% endif %}>Contractor</option>
+    </select>
+    <button type="submit" class="px-4 py-2 bg-mitra-gold text-mitra-brown text-sm font-semibold rounded-lg hover:bg-mitra-gold-dark transition-colors">Filter</button>
+    <a href="{% url 'sales:client_list' %}" class="px-4 py-2 bg-gray-100 text-gray-600 text-sm font-semibold rounded-lg hover:bg-gray-200 transition-colors">Clear</a>
+</form>
+
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+    <table class="w-full text-sm">
+        <thead>
+            <tr class="bg-gray-50 border-b border-gray-100">
+                <th class="text-left px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Client</th>
+                <th class="text-left px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Contact</th>
+                <th class="text-left px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Type</th>
+                <th class="text-left px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Zone</th>
+                <th class="text-center px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Orders</th>
+                <th class="text-center px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Actions</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+            {% for client in clients %}
+            <tr class="hover:bg-gray-50 transition-colors">
+                <td class="px-5 py-3.5">
+                    <div class="font-semibold text-gray-800">{{ client.client_name }}</div>
+                    <div class="text-xs text-gray-400">{{ client.address|truncatechars:40 }}</div>
+                </td>
+                <td class="px-5 py-3.5">
+                    <div class="text-sm text-gray-700">{{ client.contact_person|default:"—" }}</div>
+                    <div class="text-xs text-gray-400 font-mono">{{ client.phone }}</div>
+                </td>
+                <td class="px-5 py-3.5">
+                    <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold
+                        {% if client.client_type == 'Hardware Store' %}bg-blue-50 text-blue-700
+                        {% elif client.client_type == 'Contractor'   %}bg-purple-50 text-purple-700
+                        {% else %}bg-gray-100 text-gray-600{% endif %}">
+                        {{ client.client_type }}
+                    </span>
+                </td>
+                <td class="px-5 py-3.5 text-xs text-gray-500">{{ client.delivery_zone }}</td>
+                <td class="px-5 py-3.5 text-center">
+                    <a href="{% url 'sales:order_list' %}?search={{ client.client_name }}"
+                       class="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors">
+                        {{ client.total_orders }} order{{ client.total_orders|pluralize }}
+                    </a>
+                </td>
+                <td class="px-5 py-3.5">
+                    <div class="flex items-center justify-center gap-2">
+                        {% if user.get_role_name == 'Admin' or user.get_role_name == 'Sales' %}
+                        <a href="{% url 'sales:client_edit' client.pk %}" class="text-xs text-blue-600 hover:text-blue-800 font-medium">Edit</a>
+                        <span class="text-gray-300">|</span>
+                        <a href="{% url 'sales:order_create' %}?client={{ client.pk }}" class="text-xs text-green-600 hover:text-green-800 font-medium">New Order</a>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="px-5 py-10 text-center text-gray-400">No clients found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

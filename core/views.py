@@ -29,7 +29,8 @@ def dashboard_view(request):
     try:
         from materials.models import Material, Supplier
         from inventory.models import Inventory
-        from django.db.models import F
+        from sales.models import Order
+        from django.db.models import F, Sum, Count
         from types import SimpleNamespace
 
         total_materials  = Material.objects.filter(is_active=True).count()
@@ -71,7 +72,7 @@ def dashboard_view(request):
         # ── Build the detail list for the dashboard card (max 5 items) ──
         # 1. Real inventory rows that are low-stock, ordered by quantity ascending
         detail_from_inv = list(
-            low_stock_with_inv_qs.order_by('quantity')[:5]
+            low_stock_with_inv_qs.order_by('quantity')[:6]
         )
 
         # 2. Materials with no inventory row (quantity is implicitly 0)
@@ -85,8 +86,29 @@ def dashboard_view(request):
         # Sort combined list so worst items appear first
         low_stock_detail = sorted(detail_from_inv, key=lambda x: x.quantity)
 
+        # Phase 4: pending orders count
+        pending_orders = Order.objects.filter(status='Pending').count()
+        pending_orders_detail = list(
+            Order.objects.filter(status='Pending')
+                .select_related('client')
+                .annotate(item_count=Count('items'))
+                .order_by('order_date')[:5]
+        )
+        # Revenue this month (completed orders)
+        from django.utils import timezone
+        import datetime
+        now = timezone.now()
+        month_revenue = Order.objects.filter(
+            status='Completed',
+            order_date__year=now.year,
+            order_date__month=now.month
+        ).aggregate(total=Sum('total_amount'))['total'] or 0
+
     except Exception:
         total_materials = total_suppliers = low_stock_items = out_of_stock = 0
+        pending_orders = 0
+        pending_orders_detail = []
+        month_revenue = 0
 
     # We'll populate these with real data in future phases
     # For now, they're placeholders so the template doesn't crash
@@ -94,9 +116,10 @@ def dashboard_view(request):
         'user_role': user_role,
         'page_title': 'Dashboard',
         'low_stock_detail': low_stock_detail,
+        'pending_orders_detail': pending_orders_detail,
         # Placeholder stats — will be replaced with real queries in Phase 4+
         'stats': {
-            'pending_orders': 0,
+            'pending_orders': pending_orders,
             'low_stock_items': low_stock_items,
             'ongoing_projects': 0,
             'scheduled_deliveries': 0,
@@ -104,6 +127,7 @@ def dashboard_view(request):
             'total_materials':  total_materials,
             'total_suppliers':  total_suppliers,
             'out_of_stock': out_of_stock,
+            'month_revenue': month_revenue,
         }
     }
 
