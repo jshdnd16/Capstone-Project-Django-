@@ -25,30 +25,65 @@ def dashboard_view(request):
 
     # Phase 2 stats — import here to avoid circular imports at the top level
     # We use try/except in case the materials app tables don't exist yet
+    low_stock_detail = []
     try:
         from materials.models import Material, Supplier
         from inventory.models import Inventory
         from django.db.models import F
+        from types import SimpleNamespace
 
         total_materials  = Material.objects.filter(is_active=True).count()
         total_suppliers  = Supplier.objects.filter(status='Active').count()
-        low_cost_items   = Material.objects.filter(is_active=True, margin_percentage__lt=10).count()
-    
-        # Low-stock count: quantity above 0 but at or below reorder level
-        low_stock_items = Inventory.objects.filter(
-            quantity__gt=0,
+        # IDs of materials that have an Inventory row
+        materials_with_inv = set(
+            Inventory.objects.values_list('material_id', flat=True)
+        )
+
+        # Low-stock count: items whose quantity is at or below their reorder level
+        # This includes:
+        #   1. Inventory rows where 0 < quantity <= reorder_level
+        #   2. Inventory rows where quantity <= 0  (out-of-stock is also low)
+        #   3. Active materials with NO Inventory row (implicitly 0 quantity)
+        low_stock_with_inv_qs = Inventory.objects.filter(
             quantity__lte=F('material__reorder_level'),
             material__is_active=True
-        ).count()
+        ).select_related('material')
 
-        # Out-of-stock: quantity at 0 or below
-        out_of_stock = Inventory.objects.filter(
+        low_stock_with_inv = low_stock_with_inv_qs.count()
+
+        # Materials that have no Inventory row are implicitly at 0,
+        # which is always <= any reorder_level (default 10)
+        no_inv_materials = Material.objects.filter(
+            is_active=True
+        ).exclude(id__in=materials_with_inv)
+
+        low_stock_no_inv = no_inv_materials.count()
+
+        low_stock_items = low_stock_with_inv + low_stock_no_inv
+
+        # Out-of-stock: quantity at 0 or below, plus materials with no row
+        out_of_stock_with_inv = Inventory.objects.filter(
             quantity__lte=0,
             material__is_active=True
         ).count()
-    
-    # except Exception:
-    #     total_materials = total_suppliers = low_cost_items = 0
+        out_of_stock = out_of_stock_with_inv + low_stock_no_inv
+
+        # ── Build the detail list for the dashboard card (max 5 items) ──
+        # 1. Real inventory rows that are low-stock, ordered by quantity ascending
+        detail_from_inv = list(
+            low_stock_with_inv_qs.order_by('quantity')[:5]
+        )
+
+        # 2. Materials with no inventory row (quantity is implicitly 0)
+        remaining_slots = 5 - len(detail_from_inv)
+        if remaining_slots > 0:
+            for mat in no_inv_materials.order_by('name')[:remaining_slots]:
+                detail_from_inv.append(
+                    SimpleNamespace(quantity=0, material=mat)
+                )
+
+        # Sort combined list so worst items appear first
+        low_stock_detail = sorted(detail_from_inv, key=lambda x: x.quantity)
 
     except Exception:
         total_materials = total_suppliers = low_stock_items = out_of_stock = 0
@@ -58,10 +93,11 @@ def dashboard_view(request):
     context = {
         'user_role': user_role,
         'page_title': 'Dashboard',
+        'low_stock_detail': low_stock_detail,
         # Placeholder stats — will be replaced with real queries in Phase 4+
         'stats': {
             'pending_orders': 0,
-            'low_stock_items': 0,
+            'low_stock_items': low_stock_items,
             'ongoing_projects': 0,
             'scheduled_deliveries': 0,
             # Phase 2 stats (available now)

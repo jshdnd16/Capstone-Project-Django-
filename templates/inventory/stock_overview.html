@@ -200,11 +200,11 @@ with color-coded alerts for low/out-of-stock items.
                         <span class="text-gray-300">|</span>
                         {# Quick Stock In — pre-fills the material on the form #}
                         <a href="{% url 'inventory:stock_in' %}?material={{ inv.material.pk }}"
-                           class="text-xs text-green-600 hover:text-green-800 font-medium">+ In</a>
+                           class="text-xs text-green-600 hover:text-green-800 font-medium">In</a>
                         <span class="text-gray-300">|</span>
                         {# Quick Stock Out — pre-fills the material on the form #}
                         <a href="{% url 'inventory:stock_out' %}?material={{ inv.material.pk }}"
-                           class="text-xs text-red-500 hover:text-red-700 font-medium">− Out</a>
+                           class="text-xs text-red-500 hover:text-red-700 font-medium">Out</a>
                         {% endif %}
                     </div>
                 </td>

@@ -1,7 +1,3 @@
-Removed the scrollbar in the navigation bar in the left side
+Fixed the cards in the Dashboard section
 
-Include show password functionality
-
-Includes navigation indication
-
-Fixed the logo
+Fixed the low stock not updating
