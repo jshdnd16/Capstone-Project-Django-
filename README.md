@@ -1,8 +1,13 @@
-Fixed the cards in the Dashboard section
+Project management (create, track, update status)
 
-Fixed the low stock not updating
+Bill of Quantities (BOQ) with version control
 
-NEED TO INCLUDE
+BOQ line items linked to the materials catalog
 
-Total Materials Card in Dashboard, it could be change into something else
+Material requests from Architecture to the Sales warehouse
 
+Material request fulfillment tracking (approved, partially fulfilled, completed)
+
+Role-based access — Architect creates, Admin approves/manages
+
+python manage.py startapp architecture

@@ -30,6 +30,9 @@ urlpatterns = [
 
     # Sales app (Phase 4) ← ADD THIS LINE
     path('sales/', include('sales.urls', namespace='sales')),
+
+    # Architecture app (Phase 5) ← ADD THIS LINE
+    path('architecture/', include('architecture.urls', namespace='architecture')),  
 ]
 
 # Serve media files during development

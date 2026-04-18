@@ -30,8 +30,19 @@ def dashboard_view(request):
         from materials.models import Material, Supplier
         from inventory.models import Inventory
         from sales.models import Order
+        from architecture.models import Project
         from django.db.models import F, Sum, Count
         from types import SimpleNamespace
+
+        # Inside the try block, add:
+        from architecture.models import Project
+        ongoing_projects = Project.objects.filter(status='Ongoing').count()
+        pending_mr       = 0
+        try:
+            from architecture.models import MaterialRequest
+            pending_mr = MaterialRequest.objects.filter(status='Pending').count()
+        except Exception:
+            pass
 
         total_materials  = Material.objects.filter(is_active=True).count()
         total_suppliers  = Supplier.objects.filter(status='Active').count()
@@ -121,7 +132,7 @@ def dashboard_view(request):
         'stats': {
             'pending_orders': pending_orders,
             'low_stock_items': low_stock_items,
-            'ongoing_projects': 0,
+            'ongoing_projects': ongoing_projects,
             'scheduled_deliveries': 0,
             # Phase 2 stats (available now)
             'total_materials':  total_materials,

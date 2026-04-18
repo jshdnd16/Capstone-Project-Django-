@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% block title %}BOQ v{{ boq.version }}{% endblock %}
+{% block page_header %}Bill of Quantities{% endblock %}
+
+{% block content %}
+
+<div class="flex items-center gap-2 text-xs text-gray-400 mb-5">
+    <a href="{% url 'architecture:project_list' %}" class="hover:text-mitra-gold">Projects</a>
+    <span>›</span>
+    <a href="{% url 'architecture:project_detail' boq.project.pk %}" class="hover:text-mitra-gold">{{ boq.project.project_name }}</a>
+    <span>›</span>
+    <span class="text-gray-600">BOQ v{{ boq.version }}</span>
+</div>
+
+{# Header summary #}
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 mb-6">
+    <div class="flex items-start justify-between">
+        <div>
+            <h2 class="text-xl font-bold text-gray-800">BOQ v{{ boq.version }} — {{ boq.project.project_name }}</h2>
+            <p class="text-sm text-gray-500 mt-0.5">Client: {{ boq.project.client_name }}</p>
+            {% if boq.notes %}
+            <p class="text-xs text-gray-500 mt-2 italic">Revision notes: {{ boq.notes }}</p>
+            {% endif %}
+        </div>
+        <div class="text-right">
+            {% if boq.is_final %}
+            <span class="inline-block px-3 py-1 rounded-full text-sm font-bold bg-green-100 text-green-700 mb-2">✓ FINAL</span>
+            {% else %}
+            <span class="inline-block px-3 py-1 rounded-full text-sm font-bold bg-gray-100 text-gray-500 mb-2">Draft</span>
+            {% endif %}
+            <p class="text-xs text-gray-400">Created {{ boq.created_at|date:"M d, Y" }} by {{ boq.created_by.fullname|default:"—" }}</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-3 gap-4 mt-5 pt-5 border-t border-gray-100">
+        <div class="text-center">
+            <p class="text-2xl font-bold text-gray-800">₱{{ boq.total_estimate|floatformat:2 }}</p>
+            <p class="text-xs text-gray-500 mt-1">Total Estimate</p>
+        </div>
+        <div class="text-center">
+            <p class="text-2xl font-bold text-green-600">₱{{ sales_total|floatformat:2 }}</p>
+            <p class="text-xs text-gray-500 mt-1">From Sales Inventory</p>
+        </div>
+        <div class="text-center">
+            <p class="text-2xl font-bold text-blue-600">₱{{ external_total|floatformat:2 }}</p>
+            <p class="text-xs text-gray-500 mt-1">From External Suppliers</p>
+        </div>
+    </div>
+
+    {% if not boq.is_final and user.get_role_name in 'Admin,Architect' %}
+    <div class="mt-5 pt-4 border-t border-gray-100 flex gap-3">
+        <form method="post" action="{% url 'architecture:boq_finalise' boq.pk %}">
+            {% csrf_token %}
+            <button type="submit"
+                    class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg transition-colors"
+                    onclick="return confirm('Mark this BOQ as FINAL? This will unmark the previous final version.')">
+                ✓ Mark as Final / Approved
+            </button>
+        </form>
+        <a href="{% url 'architecture:material_request_create_for_project' boq.project.pk %}"
+           class="px-4 py-2 bg-mitra-gold hover:bg-mitra-gold-dark text-mitra-brown text-sm font-semibold rounded-lg transition-colors">
+            Create Material Request from this BOQ
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+{# Items table #}
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+    <table class="w-full text-sm">
+        <thead>
+            <tr class="bg-gray-50 border-b border-gray-100">
+                <th class="text-left px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Material</th>
+                <th class="text-left px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Category</th>
+                <th class="text-right px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Required Qty</th>
+                <th class="text-right px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Unit Cost</th>
+                <th class="text-right px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Total Cost</th>
+                <th class="text-center px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Source</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+            {% for item in items %}
+            <tr class="hover:bg-gray-50">
+                <td class="px-5 py-3.5">
+                    <div class="font-semibold text-gray-800">{{ item.material.name }}</div>
+                    {% if item.material.sku %}<div class="text-xs text-gray-400 font-mono">{{ item.material.sku }}</div>{% endif %}
+                    {% if item.notes %}<div class="text-xs text-gray-400 italic mt-0.5">{{ item.notes }}</div>{% endif %}
+                </td>
+                <td class="px-5 py-3.5 text-xs text-gray-500">{{ item.material.category.category_name }}</td>
+                <td class="px-5 py-3.5 text-right font-semibold text-gray-700">
+                    {{ item.required_qty }} <span class="text-xs text-gray-400 font-normal">{{ item.material.unit }}</span>
+                </td>
+                <td class="px-5 py-3.5 text-right font-mono text-xs text-gray-600">₱{{ item.unit_cost|floatformat:2 }}</td>
+                <td class="px-5 py-3.5 text-right font-mono font-bold text-gray-800">₱{{ item.total_cost|floatformat:2 }}</td>
+                <td class="px-5 py-3.5 text-center">
+                    <span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold
+                        {% if item.source_type == 'Sales Inventory' %}bg-green-100 text-green-700
+                        {% else %}bg-blue-100 text-blue-700{% endif %}">
+                        {{ item.source_type }}
+                    </span>
+                    {% if item.supplier %}
+                    <div class="text-xs text-gray-400 mt-0.5">{{ item.supplier.company_name }}</div>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="px-5 py-8 text-center text-gray-400">No items in this BOQ.</td></tr>
+            {% endfor %}
+        </tbody>
+        <tfoot class="border-t-2 border-gray-200">
+            <tr class="bg-gray-50">
+                <td colspan="4" class="px-5 py-3.5 text-right font-bold text-gray-700 uppercase tracking-wide text-sm">Total Estimate</td>
+                <td class="px-5 py-3.5 text-right font-mono font-bold text-xl text-gray-900">₱{{ boq.total_estimate|floatformat:2 }}</td>
+                <td></td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
+{% endblock %}

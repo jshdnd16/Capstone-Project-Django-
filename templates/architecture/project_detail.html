@@ -1,0 +1,238 @@
+{% extends 'base.html' %}
+{% block title %}{{ project.project_name }}{% endblock %}
+{% block page_header %}Project Detail{% endblock %}
+
+{% block content %}
+
+<div class="flex items-center gap-2 text-xs text-gray-400 mb-5">
+    <a href="{% url 'architecture:project_list' %}" class="hover:text-mitra-gold">Projects</a>
+    <span>›</span>
+    <span class="text-gray-600">{{ project.project_name }}</span>
+</div>
+
+{# ── Project header ── #}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+
+    {# Main info card #}
+    <div class="lg:col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+        <div class="flex items-start justify-between mb-4">
+            <div>
+                <h2 class="text-xl font-bold text-gray-800">{{ project.project_name }}</h2>
+                <p class="text-sm text-gray-500 mt-0.5">{{ project.client_name }}</p>
+            </div>
+            <span class="inline-block px-3 py-1 rounded-full text-sm font-bold flex-shrink-0
+                {% if project.status == 'Planning'  %}bg-blue-100 text-blue-700
+                {% elif project.status == 'Ongoing'  %}bg-green-100 text-green-700
+                {% elif project.status == 'On Hold'  %}bg-yellow-100 text-yellow-700
+                {% elif project.status == 'Completed'%}bg-gray-100 text-gray-600
+                {% else %}bg-red-100 text-red-600{% endif %}">
+                {{ project.status }}
+            </span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 text-sm mb-4">
+            <div>
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Location</span>
+                <p class="text-gray-700 mt-0.5">{{ project.location }}</p>
+            </div>
+            <div>
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Architect</span>
+                <p class="font-semibold text-gray-800 mt-0.5">{{ project.architect.fullname|default:"—" }}</p>
+            </div>
+            <div>
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Start Date</span>
+                <p class="text-gray-700 mt-0.5">{{ project.start_date|date:"M d, Y"|default:"Not set" }}</p>
+            </div>
+            <div>
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">End Date</span>
+                <p class="text-gray-700 mt-0.5">{{ project.end_date|date:"M d, Y"|default:"Not set" }}</p>
+            </div>
+        </div>
+
+        {% if project.description %}
+        <div class="pt-4 border-t border-gray-100">
+            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Description</span>
+            <p class="text-sm text-gray-600 mt-1">{{ project.description }}</p>
+        </div>
+        {% endif %}
+    </div>
+
+    {# Quick stats + actions #}
+    <div class="space-y-4">
+
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Project Financials</p>
+            <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Budget</span>
+                    <span class="font-bold text-gray-800">
+                        {% if project.budget %}₱{{ project.budget|floatformat:2 }}{% else %}—{% endif %}
+                    </span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-500">BOQ Estimate</span>
+                    <span class="font-bold text-gray-800">
+                        {% if project.total_boq_estimate %}₱{{ project.total_boq_estimate|floatformat:2 }}{% else %}—{% endif %}
+                    </span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-500">BOQ Versions</span>
+                    <span class="font-semibold text-gray-700">{{ boqs.count }}</span>
+                </div>
+            </div>
+        </div>
+
+        {# Status update #}
+        {% if user.get_role_name == 'Admin' or user.get_role_name == 'Architect' %}
+        {% if project.status != 'Completed' and project.status != 'Cancelled' %}
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Update Status</p>
+            <div class="space-y-2">
+                {% for status_choice, _ in project.STATUS_CHOICES %}
+                {% if status_choice != project.status %}
+                <form method="post" action="{% url 'architecture:project_status' project.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="new_status" value="{{ status_choice }}">
+                    <button type="submit"
+                            class="w-full py-2 text-xs font-semibold rounded-lg transition-colors border
+                                {% if status_choice == 'Cancelled' %}border-red-200 bg-red-50 text-red-700 hover:bg-red-100
+                                {% elif status_choice == 'Completed' %}border-green-200 bg-green-50 text-green-700 hover:bg-green-100
+                                {% else %}border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100{% endif %}">
+                        → {{ status_choice }}
+                    </button>
+                </form>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="flex gap-2">
+            <a href="{% url 'architecture:project_edit' project.pk %}"
+               class="flex-1 text-center py-2.5 text-xs font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors border border-blue-200">
+                ✏ Edit Project
+            </a>
+            <a href="{% url 'architecture:boq_create' project.pk %}"
+               class="flex-1 text-center py-2.5 text-xs font-semibold bg-mitra-gold hover:bg-mitra-gold-dark text-mitra-brown rounded-lg transition-colors">
+                + New BOQ
+            </a>
+        </div>
+
+        <a href="{% url 'architecture:material_request_create_for_project' project.pk %}"
+           class="block text-center py-2.5 text-xs font-semibold bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
+            + Material Request
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+{# ── BOQ History ── #}
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden mb-6">
+    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+        <h3 class="font-bold text-gray-700">Bill of Quantities (BOQ)</h3>
+        <span class="text-xs text-gray-400">{{ boqs.count }} version{{ boqs.count|pluralize }}</span>
+    </div>
+    <table class="w-full text-sm">
+        <thead>
+            <tr class="bg-gray-50 border-b border-gray-100">
+                <th class="text-left px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Version</th>
+                <th class="text-left px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Created By</th>
+                <th class="text-left px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Date</th>
+                <th class="text-right px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Total Estimate</th>
+                <th class="text-center px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Status</th>
+                <th class="text-center px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Actions</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+            {% for boq in boqs %}
+            <tr class="hover:bg-gray-50 {% if boq.is_final %}bg-green-50{% endif %}">
+                <td class="px-5 py-3.5 font-bold text-gray-700">v{{ boq.version }}</td>
+                <td class="px-5 py-3.5 text-xs text-gray-600">{{ boq.created_by.fullname|default:"—" }}</td>
+                <td class="px-5 py-3.5 text-xs text-gray-500">{{ boq.created_at|date:"M d, Y" }}</td>
+                <td class="px-5 py-3.5 text-right font-mono font-bold text-gray-800">
+                    ₱{{ boq.total_estimate|floatformat:2 }}
+                </td>
+                <td class="px-5 py-3.5 text-center">
+                    {% if boq.is_final %}
+                    <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700">✓ Final</span>
+                    {% else %}
+                    <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">Draft</span>
+                    {% endif %}
+                </td>
+                <td class="px-5 py-3.5 text-center">
+                    <div class="flex items-center justify-center gap-2">
+                        <a href="{% url 'architecture:boq_detail' boq.pk %}"
+                           class="text-xs text-blue-600 hover:text-blue-800 font-medium">View</a>
+                        {% if not boq.is_final and user.get_role_name in 'Admin,Architect' %}
+                        <span class="text-gray-300">|</span>
+                        <form method="post" action="{% url 'architecture:boq_finalise' boq.pk %}" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" class="text-xs text-green-600 hover:text-green-800 font-medium"
+                                    onclick="return confirm('Mark BOQ v{{ boq.version }} as FINAL?')">
+                                Finalise
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="px-5 py-8 text-center text-gray-400">
+                No BOQ yet.
+                <a href="{% url 'architecture:boq_create' project.pk %}" class="text-mitra-gold hover:underline ml-1">Create the first one</a>.
+            </td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{# ── Material Requests ── #}
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+        <h3 class="font-bold text-gray-700">Material Requests</h3>
+        {% if user.get_role_name == 'Admin' or user.get_role_name == 'Architect' %}
+        <a href="{% url 'architecture:material_request_create_for_project' project.pk %}"
+           class="text-xs font-semibold text-mitra-gold hover:underline">+ New Request</a>
+        {% endif %}
+    </div>
+    <table class="w-full text-sm">
+        <thead>
+            <tr class="bg-gray-50 border-b border-gray-100">
+                <th class="text-left px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Request #</th>
+                <th class="text-left px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Submitted By</th>
+                <th class="text-left px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Date</th>
+                <th class="text-right px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Total</th>
+                <th class="text-center px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Status</th>
+                <th class="text-center px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Actions</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+            {% for mr in requests %}
+            <tr class="hover:bg-gray-50">
+                <td class="px-5 py-3.5 font-mono text-xs font-bold text-gray-500">MR#{{ mr.pk }}</td>
+                <td class="px-5 py-3.5 text-xs text-gray-600">{{ mr.architect.fullname|default:"—" }}</td>
+                <td class="px-5 py-3.5 text-xs text-gray-500">{{ mr.request_date|date:"M d, Y" }}</td>
+                <td class="px-5 py-3.5 text-right font-mono font-bold text-gray-800">₱{{ mr.total_amount|floatformat:2 }}</td>
+                <td class="px-5 py-3.5 text-center">
+                    <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold
+                        {% if mr.status == 'Pending'             %}bg-yellow-100 text-yellow-800
+                        {% elif mr.status == 'Approved'           %}bg-blue-100 text-blue-800
+                        {% elif mr.status == 'Partially Fulfilled'%}bg-orange-100 text-orange-700
+                        {% elif mr.status == 'Fulfilled'          %}bg-green-100 text-green-700
+                        {% elif mr.status == 'Rejected'           %}bg-red-100 text-red-700
+                        {% else %}bg-gray-100 text-gray-600{% endif %}">
+                        {{ mr.status }}
+                    </span>
+                </td>
+                <td class="px-5 py-3.5 text-center">
+                    <a href="{% url 'architecture:material_request_detail' mr.pk %}"
+                       class="text-xs text-blue-600 hover:text-blue-800 font-medium">View →</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="px-5 py-8 text-center text-gray-400">No material requests yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+{% block title %}MR#{{ mat_request.pk }}{% endblock %}
+{% block page_header %}Material Request{% endblock %}
+
+{% block content %}
+
+<div class="flex items-center gap-2 text-xs text-gray-400 mb-5">
+    <a href="{% url 'architecture:material_request_list' %}" class="hover:text-mitra-gold">Material Requests</a>
+    <span>›</span>
+    <span class="text-gray-600">MR#{{ mat_request.pk }}</span>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+
+    {# Main info #}
+    <div class="lg:col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+        <div class="flex items-start justify-between mb-4">
+            <div>
+                <h2 class="text-xl font-bold text-gray-800">Material Request #{{ mat_request.pk }}</h2>
+                <p class="text-sm text-gray-500 mt-0.5">{{ mat_request.request_date|date:"F d, Y — g:i A" }}</p>
+            </div>
+            <span class="inline-block px-3 py-1 rounded-full text-sm font-bold flex-shrink-0
+                {% if mat_request.status == 'Pending'              %}bg-yellow-100 text-yellow-800
+                {% elif mat_request.status == 'Approved'            %}bg-blue-100 text-blue-800
+                {% elif mat_request.status == 'Partially Fulfilled' %}bg-orange-100 text-orange-700
+                {% elif mat_request.status == 'Fulfilled'           %}bg-green-100 text-green-700
+                {% elif mat_request.status == 'Rejected'            %}bg-red-100 text-red-700
+                {% else %}bg-gray-100 text-gray-600{% endif %}">
+                {{ mat_request.status }}
+            </span>
+        </div>
+        <div class="grid grid-cols-2 gap-4 text-sm">
+            <div>
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Project</span>
+                <p class="font-semibold text-gray-800 mt-0.5">{{ mat_request.project.project_name }}</p>
+                <p class="text-xs text-gray-400">{{ mat_request.project.client_name }}</p>
+            </div>
+            <div>
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Submitted By</span>
+                <p class="font-semibold text-gray-800 mt-0.5">{{ mat_request.architect.fullname|default:"—" }}</p>
+            </div>
+            <div>
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Fulfillment Source</span>
+                <p class="font-medium text-gray-700 mt-0.5">{{ mat_request.fulfillment_source }}</p>
+            </div>
+            <div>
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Stock Deducted</span>
+                <p class="font-medium mt-0.5 {% if mat_request.stock_deducted %}text-green-600{% else %}text-gray-400{% endif %}">
+                    {% if mat_request.stock_deducted %}Yes — inventory updated{% else %}Not yet{% endif %}
+                </p>
+            </div>
+        </div>
+        {% if mat_request.notes %}
+        <div class="mt-4 pt-4 border-t border-gray-100">
+            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Architect Notes</span>
+            <p class="text-sm text-gray-600 mt-1">{{ mat_request.notes }}</p>
+        </div>
+        {% endif %}
+        {% if mat_request.admin_notes %}
+        <div class="mt-3 bg-blue-50 border border-blue-100 rounded-lg px-4 py-3">
+            <span class="text-xs font-semibold text-blue-700 uppercase tracking-wide">Admin Notes</span>
+            <p class="text-sm text-blue-800 mt-1">{{ mat_request.admin_notes }}</p>
+        </div>
+        {% endif %}
+    </div>
+
+    {# Right: total + admin actions #}
+    <div class="space-y-4">
+
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Request Total</p>
+            <p class="text-3xl font-bold text-gray-800">₱{{ mat_request.total_amount|floatformat:2 }}</p>
+        </div>
+
+        {# Admin approval / rejection panel #}
+        {% if user.get_role_name == 'Admin' and mat_request.status == 'Pending' %}
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Admin Action</p>
+
+            <form method="post" action="{% url 'architecture:material_request_approve' mat_request.pk %}" class="mb-3">
+                {% csrf_token %}
+                <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Admin Notes (optional)</label>
+                {{ approval_form.admin_notes }}
+                <button type="submit"
+                        class="mt-3 w-full py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-bold rounded-lg transition-colors"
+                        onclick="return confirm('Approve this request? Stock will be deducted for Sales Inventory items.')">
+                    ✓ Approve & Deduct Stock
+                </button>
+            </form>
+
+            <form method="post" action="{% url 'architecture:material_request_reject' mat_request.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="admin_notes" id="reject-notes">
+                <button type="submit"
+                        class="w-full py-2 bg-red-50 hover:bg-red-100 text-red-700 text-sm font-semibold rounded-lg transition-colors border border-red-200"
+                        onclick="document.getElementById('reject-notes').value=document.querySelector('textarea[name=admin_notes]')?.value||''; return confirm('Reject this request?')">
+                    ✕ Reject
+                </button>
+            </form>
+        </div>
+        {% endif %}
+
+        {# Back button #}
+        <a href="{% url 'architecture:project_detail' mat_request.project.pk %}"
+           class="block text-center py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-lg transition-colors">
+            ← Back to Project
+        </a>
+    </div>
+</div>
+
+{# Items table #}
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+    <div class="px-5 py-4 border-b border-gray-100">
+        <h3 class="font-bold text-gray-700">Requested Materials</h3>
+    </div>
+    <table class="w-full text-sm">
+        <thead>
+            <tr class="bg-gray-50 border-b border-gray-100">
+                <th class="text-left px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Material</th>
+                <th class="text-right px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Required</th>
+                <th class="text-right px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Fulfilled</th>
+                <th class="text-right px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Remaining</th>
+                <th class="text-right px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Unit Cost</th>
+                <th class="text-right px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Subtotal</th>
+                <th class="text-center px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Source</th>
+                <th class="text-center px-5 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Status</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+            {% for item in items %}
+            <tr class="hover:bg-gray-50">
+                <td class="px-5 py-3.5">
+                    <div class="font-semibold text-gray-800">{{ item.material.name }}</div>
+                    {% if item.material.sku %}<div class="text-xs text-gray-400 font-mono">{{ item.material.sku }}</div>{% endif %}
+                </td>
+                <td class="px-5 py-3.5 text-right font-semibold text-gray-700">
+                    {{ item.required_qty }} <span class="text-xs text-gray-400">{{ item.material.unit }}</span>
+                </td>
+                <td class="px-5 py-3.5 text-right text-green-600 font-semibold">{{ item.fulfilled_qty }}</td>
+                <td class="px-5 py-3.5 text-right {% if item.remaining_qty > 0 %}text-orange-600 font-semibold{% else %}text-gray-400{% endif %}">
+                    {{ item.remaining_qty }}
+                </td>
+                <td class="px-5 py-3.5 text-right font-mono text-xs text-gray-600">₱{{ item.unit_cost|floatformat:2 }}</td>
+                <td class="px-5 py-3.5 text-right font-mono font-bold text-gray-800">₱{{ item.subtotal|floatformat:2 }}</td>
+                <td class="px-5 py-3.5 text-center">
+                    <span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold
+                        {% if item.source_type == 'Sales Inventory' %}bg-green-100 text-green-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+                        {{ item.source_type }}
+                    </span>
+                </td>
+                <td class="px-5 py-3.5 text-center">
+                    {% if item.is_fully_fulfilled %}
+                    <span class="inline-block px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700">✓ Done</span>
+                    {% else %}
+                    <span class="inline-block px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700">Pending</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="8" class="px-5 py-8 text-center text-gray-400">No items on this request.</td></tr>
+            {% endfor %}
+        </tbody>
+        <tfoot class="border-t-2 border-gray-200">
+            <tr class="bg-gray-50">
+                <td colspan="5" class="px-5 py-3.5 text-right font-bold text-gray-700 text-sm">Total</td>
+                <td class="px-5 py-3.5 text-right font-mono font-bold text-xl text-gray-900">₱{{ mat_request.total_amount|floatformat:2 }}</td>
+                <td colspan="2"></td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
+
+{% endblock %}

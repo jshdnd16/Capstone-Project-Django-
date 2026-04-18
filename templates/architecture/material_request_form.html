@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+{% block title %}{{ form_title }}{% endblock %}
+{% block page_header %}{{ form_title }}{% endblock %}
+
+{% block content %}
+
+<div class="flex items-center gap-2 text-xs text-gray-400 mb-5">
+    <a href="{% url 'architecture:material_request_list' %}" class="hover:text-mitra-gold">Material Requests</a>
+    <span>›</span>
+    <span class="text-gray-600">{{ form_title }}</span>
+</div>
+
+<form method="post" id="mr-form">
+    {% csrf_token %}
+    {{ item_formset.management_form }}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        {# Left: Header #}
+        <div class="lg:col-span-1 space-y-4">
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="bg-mitra-brown px-5 py-4">
+                    <h3 class="font-bold text-white text-sm">Request Details</h3>
+                </div>
+                <div class="p-5 space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Project <span class="text-red-500">*</span></label>
+                        {{ request_form.project }}
+                        {% for e in request_form.project.errors %}<p class="text-xs text-red-600 mt-1">{{ e }}</p>{% endfor %}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Fulfillment Source</label>
+                        {{ request_form.fulfillment_source }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Notes</label>
+                        {{ request_form.notes }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-mitra-brown rounded-xl p-5 text-white">
+                <p class="text-xs text-gray-400 uppercase tracking-wide mb-1">Request Total</p>
+                <p class="text-3xl font-bold" id="grand-total">₱0.00</p>
+                <p class="text-xs text-gray-400 mt-2" id="item-count">0 items</p>
+            </div>
+
+            <button type="submit" class="w-full py-3 bg-mitra-gold hover:bg-mitra-gold-dark text-mitra-brown font-bold text-sm rounded-xl transition-colors">
+                Submit Request
+            </button>
+            <a href="{% url 'architecture:material_request_list' %}"
+               class="block w-full py-3 text-center bg-white hover:bg-gray-50 text-gray-600 font-semibold text-sm rounded-xl transition-colors border border-gray-200">
+                Cancel
+            </a>
+        </div>
+
+        {# Right: Items formset #}
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="bg-gray-50 border-b border-gray-100 px-5 py-4 flex items-center justify-between">
+                    <h3 class="font-bold text-gray-700 text-sm">Materials Needed</h3>
+                    <button type="button" id="add-item-btn"
+                            class="inline-flex items-center gap-1.5 text-xs font-semibold text-mitra-brown bg-mitra-gold hover:bg-mitra-gold-dark px-3 py-1.5 rounded-lg transition-colors">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 4v16m8-8H4"/></svg>
+                        Add Item
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-12 gap-2 px-5 py-2 bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <div class="col-span-4">Material</div>
+                    <div class="col-span-2 text-right">Qty Needed</div>
+                    <div class="col-span-2 text-right">Unit Cost</div>
+                    <div class="col-span-2">Source</div>
+                    <div class="col-span-1 text-right">Subtotal</div>
+                    <div class="col-span-1"></div>
+                </div>
+
+                <div id="formset-container" class="divide-y divide-gray-50">
+                    {% for item_form in item_formset %}
+                    <div class="formset-row grid grid-cols-12 gap-2 px-5 py-3 items-center">
+                        {{ item_form.id }}
+                        <div class="col-span-4">{{ item_form.material }}</div>
+                        <div class="col-span-2">{{ item_form.required_qty }}</div>
+                        <div class="col-span-2">{{ item_form.unit_cost }}</div>
+                        <div class="col-span-2">{{ item_form.source_type }}</div>
+                        <div class="col-span-1 text-right font-mono text-xs font-bold text-gray-700 row-subtotal">₱0.00</div>
+                        <div class="col-span-1 text-center">
+                            {% if item_form.can_delete %}
+                            <label class="cursor-pointer text-gray-300 hover:text-red-500">
+                                {{ item_form.DELETE }}
+                                <svg class="w-4 h-4 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+                            </label>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div id="empty-form-template" class="hidden">
+                    <div class="formset-row grid grid-cols-12 gap-2 px-5 py-3 items-center">
+                        {{ item_formset.empty_form.id }}
+                        <div class="col-span-4">{{ item_formset.empty_form.material }}</div>
+                        <div class="col-span-2">{{ item_formset.empty_form.required_qty }}</div>
+                        <div class="col-span-2">{{ item_formset.empty_form.unit_cost }}</div>
+                        <div class="col-span-2">{{ item_formset.empty_form.source_type }}</div>
+                        <div class="col-span-1 text-right font-mono text-xs font-bold text-gray-700 row-subtotal">₱0.00</div>
+                        <div class="col-span-1 text-center">
+                            <button type="button" class="remove-row-btn text-gray-300 hover:text-red-500">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="px-5 py-3 bg-gray-50 border-t border-gray-100 flex justify-end">
+                    <div class="text-sm text-gray-500">
+                        Total: <span class="font-bold text-gray-800 text-base" id="footer-total">₱0.00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const MATERIALS = {};
+try { {{ materials_json|safe }}.forEach(m => { MATERIALS[String(m.id)] = m; }); } catch(e) {}
+const mgmtForms = document.querySelector('[name$="TOTAL_FORMS"]');
+function fmt(n) { return '₱'+parseFloat(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
+function recalcAll() {
+    let grand=0, count=0;
+    document.querySelectorAll('.formset-row').forEach(row => {
+        const del = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
+        if (del&&del.checked) { row.style.opacity='0.4'; row.querySelector('.row-subtotal').textContent='—'; return; }
+        row.style.opacity='1';
+        const qty  = parseFloat(row.querySelector('.mr-qty-input,  input[name$="-required_qty"]')?.value)||0;
+        const cost = parseFloat(row.querySelector('.mr-cost-input, input[name$="-unit_cost"]')?.value)   ||0;
+        const sub  = qty*cost;
+        const el   = row.querySelector('.row-subtotal');
+        if (el) el.textContent = fmt(sub);
+        if (qty>0&&cost>0) { grand+=sub; count++; }
+    });
+    document.getElementById('grand-total').textContent  = fmt(grand);
+    document.getElementById('footer-total').textContent = fmt(grand);
+    document.getElementById('item-count').textContent   = count+' item'+(count!==1?'s':'');
+}
+function bindRow(row) {
+    row.querySelectorAll('input[type="number"],select').forEach(el => { el.addEventListener('input',recalcAll); el.addEventListener('change',recalcAll); });
+    const ms = row.querySelector('.mr-material-select,select[name$="-material"]');
+    if (ms) ms.addEventListener('change', function() {
+        const m=MATERIALS[this.value], cost=row.querySelector('.mr-cost-input,input[name$="-unit_cost"]');
+        if (m&&cost&&!cost.value) cost.value=parseFloat(m.current_cost).toFixed(2);
+        recalcAll();
+    });
+}
+document.getElementById('add-item-btn').addEventListener('click', function() {
+    const total=parseInt(mgmtForms.value), tpl=document.getElementById('empty-form-template').innerHTML;
+    const div=document.createElement('div'); div.innerHTML=tpl.replace(/__prefix__/g,total);
+    const row=div.firstElementChild; document.getElementById('formset-container').appendChild(row);
+    mgmtForms.value=total+1; bindRow(row);
+    row.querySelector('.remove-row-btn')?.addEventListener('click',()=>{row.remove();recalcAll();});
+    recalcAll();
+});
+document.querySelectorAll('input[type="checkbox"][name$="-DELETE"]').forEach(c=>{c.classList.add('hidden');c.addEventListener('change',recalcAll);});
+document.querySelectorAll('.formset-row').forEach(bindRow); recalcAll();
+</script>
+{% endblock %}

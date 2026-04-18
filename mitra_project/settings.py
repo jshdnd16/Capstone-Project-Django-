@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'materials',  # ← ADD THIS — Phase 2: Materials, Categories, Suppliers
     'inventory',   # ← ADD THIS — Phase 3
     'sales',     # ← ADD THIS — Phase 4
+    'architecture',   # ← ADD THIS — Phase 5
 ]
 
 MIDDLEWARE = [
