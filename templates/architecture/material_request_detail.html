@@ -62,6 +62,14 @@
             <p class="text-sm text-blue-800 mt-1">{{ mat_request.admin_notes }}</p>
         </div>
         {% endif %}
+        {# Schedule delivery for Approved requests #}
+        {% if mat_request.status == 'Approved' and user.get_role_name in 'Admin,Sales' %}
+        <a href="{% url 'delivery:delivery_create' %}?request={{ mat_request.pk }}"
+           class="block text-center py-2.5 bg-purple-50 hover:bg-purple-100 text-purple-700
+                  text-sm font-semibold rounded-lg transition-colors border border-purple-200 mt-2">
+            🚚 Schedule Delivery
+        </a>
+        {% endif %}
     </div>
 
     {# Right: total + admin actions #}

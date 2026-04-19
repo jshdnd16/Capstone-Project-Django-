@@ -32,7 +32,13 @@ urlpatterns = [
     path('sales/', include('sales.urls', namespace='sales')),
 
     # Architecture app (Phase 5) ← ADD THIS LINE
-    path('architecture/', include('architecture.urls', namespace='architecture')),  
+    path('architecture/', include('architecture.urls', namespace='architecture')),
+
+    # Delivery app (Phase 6) ← ADD THIS LINE
+    path('delivery/', include('delivery.urls', namespace='delivery')),
+
+    # Procurement app (Phase 7) ← ADD THIS LINE
+    path('procurement/',  include('procurement.urls',    namespace='procurement')),
 ]
 
 # Serve media files during development

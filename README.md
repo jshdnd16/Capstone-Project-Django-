@@ -1,13 +1,13 @@
-Project management (create, track, update status)
+Procurement orders to suppliers (primarily Magna Prime)
 
-Bill of Quantities (BOQ) with version control
+Line items per procurement order with quantity and cost tracking
 
-BOQ line items linked to the materials catalog
+Status workflow: Draft → Submitted → Confirmed → Shipped → Received → Cancelled
 
-Material requests from Architecture to the Sales warehouse
+Auto Stock-In when a procurement is marked Received — inventory updates automatically
 
-Material request fulfillment tracking (approved, partially fulfilled, completed)
+Partial receiving support — record what actually arrived vs what was ordered
 
-Role-based access — Architect creates, Admin approves/manages
+Procurement dashboard with pending orders, expected deliveries, and spend summaries
 
-python manage.py startapp architecture
+Role-based access: Warehouse creates, Admin confirms and receives

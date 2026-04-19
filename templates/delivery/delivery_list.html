@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+{% block title %}Deliveries{% endblock %}
+{% block page_header %}Deliveries{% endblock %}
+
+{% block content %}
+
+<div class="flex items-center justify-between mb-6">
+    <div>
+        <h2 class="text-xl font-bold text-gray-800">Delivery Schedule</h2>
+        <p class="text-sm text-gray-500 mt-0.5">{{ counts.all }} total delivery record{{ counts.all|pluralize }}</p>
+    </div>
+    <div class="flex gap-2">
+        {% if user.get_role_name == 'Driver' %}
+        <a href="{% url 'delivery:driver_dashboard' %}"
+           class="inline-flex items-center gap-2 bg-mitra-gold hover:bg-mitra-gold-dark
+                  text-mitra-brown font-semibold text-sm px-4 py-2.5 rounded-lg transition-colors shadow-sm">
+            My Dashboard
+        </a>
+        {% endif %}
+        {% if user.get_role_name == 'Admin' or user.get_role_name == 'Sales' %}
+        <a href="{% url 'delivery:delivery_create' %}"
+           class="inline-flex items-center gap-2 bg-mitra-gold hover:bg-mitra-gold-dark
+                  text-mitra-brown font-semibold text-sm px-4 py-2.5 rounded-lg transition-colors shadow-sm">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 4v16m8-8H4"/></svg>
+            Schedule Delivery
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+{# Status tab bar #}
+<div class="flex flex-wrap gap-2 mb-5">
+    <a href="{% url 'delivery:delivery_list' %}"
+       class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
+              {% if not status_filter %}bg-mitra-gold text-mitra-brown{% else %}bg-white text-gray-600 border border-gray-200 hover:bg-gray-50{% endif %}">
+        All ({{ counts.all }})
+    </a>
+    <a href="?status=Scheduled"
+       class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
+              {% if status_filter == 'Scheduled' %}bg-blue-500 text-white{% else %}bg-white text-gray-600 border border-gray-200 hover:bg-gray-50{% endif %}">
+        Scheduled ({{ counts.scheduled }})
+    </a>
+    <a href="?status=Out+for+Delivery"
+       class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
+              {% if status_filter == 'Out for Delivery' %}bg-purple-500 text-white{% else %}bg-white text-gray-600 border border-gray-200 hover:bg-gray-50{% endif %}">
+        Out for Delivery ({{ counts.out }})
+    </a>
+    <a href="?status=Arrived"
+       class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
+              {% if status_filter == 'Arrived' %}bg-orange-500 text-white{% else %}bg-white text-gray-600 border border-gray-200 hover:bg-gray-50{% endif %}">
+        Arrived ({{ counts.arrived }})
+    </a>
+    <a href="?status=Received"
+       class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
+              {% if status_filter == 'Received' %}bg-green-500 text-white{% else %}bg-white text-gray-600 border border-gray-200 hover:bg-gray-50{% endif %}">
+        Received ({{ counts.received }})
+    </a>
+</div>
+
+{# Search & date filter bar #}
+<form method="get" class="flex flex-wrap gap-3 mb-5 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+    {% if status_filter %}<input type="hidden" name="status" value="{{ status_filter }}">{% endif %}
+    <input type="text" name="search" value="{{ search }}"
+           class="form-input flex-1 min-w-44" placeholder="Search driver, destination, DR#...">
+    <input type="date" name="date" value="{{ date_filter }}"
+           class="form-input w-auto">
+    <select name="type" class="form-input w-auto">
+        <option value="">All Types</option>
+        <option value="Sales Order"          {% if type_filter == 'Sales Order'          %}selected{% endif %}>Sales Order</option>
+        <option value="Architecture Request" {% if type_filter == 'Architecture Request' %}selected{% endif %}>Architecture</option>
+    </select>
+    <button type="submit"
+            class="px-4 py-2 bg-mitra-gold text-mitra-brown text-sm font-semibold rounded-lg hover:bg-mitra-gold-dark transition-colors">
+        Filter
+    </button>
+    <a href="{% url 'delivery:delivery_list' %}"
+       class="px-4 py-2 bg-gray-100 text-gray-600 text-sm font-semibold rounded-lg hover:bg-gray-200 transition-colors">
+        Clear
+    </a>
+</form>
+
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+    <table class="w-full text-sm">
+        <thead>
+            <tr class="bg-gray-50 border-b border-gray-100">
+                <th class="text-left px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide w-20">#</th>
+                <th class="text-left px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Source</th>
+                <th class="text-left px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Destination</th>
+                <th class="text-left px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Driver</th>
+                <th class="text-left px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Date</th>
+                <th class="text-center px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Status</th>
+                <th class="text-center px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Delay</th>
+                <th class="text-center px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Actions</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+            {% for delivery in deliveries %}
+            <tr class="hover:bg-gray-50 transition-colors
+                       {% if delivery.is_delayed %}bg-orange-50{% endif %}">
+                <td class="px-5 py-3.5 font-mono text-xs font-bold text-gray-500">#{{ delivery.pk }}</td>
+                <td class="px-5 py-3.5">
+                    <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold
+                        {% if delivery.delivery_type == 'Sales Order' %}bg-blue-50 text-blue-700
+                        {% else %}bg-purple-50 text-purple-700{% endif %}">
+                        {% if delivery.delivery_type == 'Sales Order' %}
+                            Order #{{ delivery.order_id }}
+                        {% else %}
+                            MR#{{ delivery.request_id }}
+                        {% endif %}
+                    </span>
+                </td>
+                <td class="px-5 py-3.5">
+                    <div class="font-semibold text-gray-800 text-sm">{{ delivery.destination_client }}</div>
+                    <div class="text-xs text-gray-400 truncate max-w-xs">{{ delivery.end_location }}</div>
+                </td>
+                <td class="px-5 py-3.5">
+                    <div class="font-medium text-gray-700 text-sm">{{ delivery.driver_name }}</div>
+                    <div class="text-xs text-gray-400">{{ delivery.vehicle_plate|default:"—" }}</div>
+                </td>
+                <td class="px-5 py-3.5 text-xs text-gray-600 font-mono">
+                    {{ delivery.schedule_date|date:"M d, Y" }}
+                </td>
+                <td class="px-5 py-3.5 text-center">
+                    <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold
+                        {% if delivery.status == 'Scheduled'        %}bg-blue-100 text-blue-700
+                        {% elif delivery.status == 'Out for Delivery'%}bg-purple-100 text-purple-700
+                        {% elif delivery.status == 'Arrived'         %}bg-orange-100 text-orange-700
+                        {% elif delivery.status == 'Received'        %}bg-green-100 text-green-700
+                        {% elif delivery.status == 'Cancelled'       %}bg-red-100 text-red-600
+                        {% else %}bg-gray-100 text-gray-500{% endif %}">
+                        {{ delivery.status }}
+                    </span>
+                </td>
+                <td class="px-5 py-3.5 text-center">
+                    {% if delivery.is_delayed %}
+                    <span class="inline-block px-2 py-0.5 rounded-full text-xs font-bold bg-orange-100 text-orange-700">
+                        ⚠ Delayed
+                    </span>
+                    {% else %}
+                    <span class="text-gray-300 text-xs">—</span>
+                    {% endif %}
+                </td>
+                <td class="px-5 py-3.5 text-center">
+                    <a href="{% url 'delivery:delivery_detail' delivery.pk %}"
+                       class="text-xs text-blue-600 hover:text-blue-800 font-semibold">
+                        View →
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" class="px-5 py-10 text-center text-gray-400">
+                    No deliveries found.
+                    {% if user.get_role_name == 'Admin' or user.get_role_name == 'Sales' %}
+                    <a href="{% url 'delivery:delivery_create' %}" class="text-mitra-gold hover:underline ml-1">Schedule one now</a>.
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

@@ -1,0 +1,300 @@
+{% extends 'base.html' %}
+{% block title %}Delivery #{{ delivery.pk }}{% endblock %}
+{% block page_header %}Delivery #{{ delivery.pk }}{% endblock %}
+
+{% block content %}
+
+<div class="flex items-center gap-2 text-xs text-gray-400 mb-5">
+    <a href="{% url 'delivery:delivery_list' %}" class="hover:text-mitra-gold">Deliveries</a>
+    <span>›</span>
+    <span class="text-gray-600">Delivery #{{ delivery.pk }}</span>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+
+    {# Main info card #}
+    <div class="lg:col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+        <div class="flex items-start justify-between mb-5">
+            <div>
+                <h2 class="text-xl font-bold text-gray-800">Delivery #{{ delivery.pk }}</h2>
+                <p class="text-sm text-gray-500 mt-0.5">{{ delivery.source_label }}</p>
+            </div>
+            <span class="inline-block px-3 py-1 rounded-full text-sm font-bold flex-shrink-0
+                {% if delivery.status == 'Scheduled'        %}bg-blue-100 text-blue-700
+                {% elif delivery.status == 'Out for Delivery'%}bg-purple-100 text-purple-700
+                {% elif delivery.status == 'Arrived'         %}bg-orange-100 text-orange-700
+                {% elif delivery.status == 'Received'        %}bg-green-100 text-green-700
+                {% elif delivery.status == 'Cancelled'       %}bg-red-100 text-red-600
+                {% else %}bg-gray-100 text-gray-500{% endif %}">
+                {{ delivery.status }}
+            </span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 text-sm">
+
+            <div>
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Driver</span>
+                <p class="font-semibold text-gray-800 mt-0.5">{{ delivery.driver_name }}</p>
+                <p class="text-xs text-gray-400">{{ delivery.delivery_team }}</p>
+            </div>
+
+            <div>
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Vehicle</span>
+                <p class="font-semibold text-gray-800 mt-0.5">{{ delivery.vehicle_plate|default:"Not recorded" }}</p>
+            </div>
+
+            <div>
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Schedule Date</span>
+                <p class="font-semibold text-gray-800 mt-0.5">{{ delivery.schedule_date|date:"F d, Y" }}</p>
+            </div>
+
+            <div>
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Delivered At</span>
+                <p class="font-semibold mt-0.5 {% if delivery.delivered_at %}text-green-700{% else %}text-gray-400{% endif %}">
+                    {% if delivery.delivered_at %}{{ delivery.delivered_at|date:"M d, Y g:i A" }}{% else %}—{% endif %}
+                </p>
+            </div>
+
+            <div class="col-span-2">
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Route</span>
+                <p class="text-gray-700 mt-0.5 text-xs">
+                    <span class="font-semibold">From:</span> {{ delivery.start_location }}
+                </p>
+                <p class="text-gray-700 text-xs mt-0.5">
+                    <span class="font-semibold">To:</span> {{ delivery.end_location }}
+                </p>
+                {% if delivery.route_notes %}
+                <p class="text-gray-500 text-xs mt-1 italic">{{ delivery.route_notes }}</p>
+                {% endif %}
+            </div>
+
+            {% if delivery.dr_number or delivery.received_by %}
+            <div>
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">DR Number</span>
+                <p class="font-bold text-gray-800 mt-0.5">{{ delivery.dr_number|default:"—" }}</p>
+            </div>
+            <div>
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Received By</span>
+                <p class="font-semibold text-gray-800 mt-0.5">{{ delivery.received_by|default:"—" }}</p>
+            </div>
+            {% endif %}
+
+        </div>
+
+        {# Delay flags #}
+        {% if delivery.is_delayed %}
+        <div class="mt-4 pt-4 border-t border-gray-100">
+            <span class="text-xs font-semibold text-orange-600 uppercase tracking-wide">⚠ Delays Recorded</span>
+            <div class="flex flex-wrap gap-2 mt-2">
+                {% if delivery.weather_delay %}
+                <span class="inline-block px-2.5 py-1 rounded-lg text-xs font-semibold bg-orange-100 text-orange-700">
+                    🌧 Weather Delay
+                </span>
+                {% endif %}
+                {% if delivery.driver_unavailable_delay %}
+                <span class="inline-block px-2.5 py-1 rounded-lg text-xs font-semibold bg-orange-100 text-orange-700">
+                    👤 Driver Unavailable
+                </span>
+                {% endif %}
+                {% if delivery.closed_store_delay %}
+                <span class="inline-block px-2.5 py-1 rounded-lg text-xs font-semibold bg-orange-100 text-orange-700">
+                    🔒 Store Closed
+                </span>
+                {% endif %}
+            </div>
+            {% if delivery.delay_remarks %}
+            <p class="text-sm text-gray-600 mt-2">{{ delivery.delay_remarks }}</p>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if delivery.notes %}
+        <div class="mt-4 pt-4 border-t border-gray-100">
+            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Notes</span>
+            <p class="text-sm text-gray-600 mt-1">{{ delivery.notes }}</p>
+        </div>
+        {% endif %}
+    </div>
+
+    {# Right: status actions + links #}
+    <div class="space-y-4">
+
+        {# Advance status buttons #}
+        {% if next_statuses and user.get_role_name != 'Warehouse' %}
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Update Status</p>
+            <div class="space-y-2">
+                {% for next_status in next_statuses %}
+                {% if next_status == 'Received' %}
+                {# Received goes to the completion form #}
+                <a href="{% url 'delivery:delivery_complete' delivery.pk %}"
+                   class="block w-full text-center py-2.5 text-sm font-bold rounded-lg transition-colors
+                          bg-green-600 hover:bg-green-700 text-white">
+                    ✓ Mark as Received
+                </a>
+                {% else %}
+                <form method="post" action="{% url 'delivery:delivery_status' delivery.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="new_status" value="{{ next_status }}">
+                    <button type="submit"
+                            class="w-full py-2.5 text-sm font-bold rounded-lg transition-colors
+                                {% if next_status == 'Cancelled' %}
+                                    bg-red-50 hover:bg-red-100 text-red-700 border border-red-200
+                                {% elif next_status == 'Out for Delivery' %}
+                                    bg-purple-600 hover:bg-purple-700 text-white
+                                {% else %}
+                                    bg-mitra-gold hover:bg-mitra-gold-dark text-mitra-brown
+                                {% endif %}"
+                            {% if next_status == 'Cancelled' %}
+                            onclick="return confirm('Cancel this delivery?')"
+                            {% endif %}>
+                        → {{ next_status }}
+                    </button>
+                </form>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {# Edit button for Scheduled deliveries #}
+        {% if delivery.status == 'Scheduled' and user.get_role_name in 'Admin,Sales' %}
+        <a href="{% url 'delivery:delivery_edit' delivery.pk %}"
+           class="block text-center py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700
+                  text-sm font-semibold rounded-xl transition-colors border border-blue-200">
+            ✏ Edit Schedule
+        </a>
+        {% endif %}
+
+        {# Link to source document #}
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Source Document</p>
+            {% if delivery.order %}
+            <a href="{% url 'sales:order_detail' delivery.order.pk %}"
+               class="block text-sm text-blue-600 hover:underline font-semibold">
+                Sales Order #{{ delivery.order.pk }} →
+            </a>
+            <p class="text-xs text-gray-400 mt-1">{{ delivery.order.client.client_name }}</p>
+            {% elif delivery.request %}
+            <a href="{% url 'architecture:material_request_detail' delivery.request.pk %}"
+               class="block text-sm text-blue-600 hover:underline font-semibold">
+                Material Request #{{ delivery.request.pk }} →
+            </a>
+            <p class="text-xs text-gray-400 mt-1">{{ delivery.request.project.project_name }}</p>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+
+{# ── Status timeline ── #}
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 mb-6">
+    <h3 class="font-bold text-gray-700 mb-5 text-sm uppercase tracking-wide">Status Timeline</h3>
+    <div class="flex items-center gap-0 overflow-x-auto pb-2">
+        {# Status: Scheduled #}
+        <div class="flex items-center flex-shrink-0">
+            <div class="flex flex-col items-center">
+                <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold
+                    {% if delivery.status == 'Scheduled' %}ring-2 ring-offset-2 ring-mitra-gold bg-mitra-gold text-mitra-brown
+                    {% elif delivery.status == 'Cancelled' %}bg-gray-200 text-gray-400
+                    {% elif delivery.status != 'Scheduled' %}bg-green-500 text-white
+                    {% else %}bg-gray-200 text-gray-400{% endif %}">
+                    ✓
+                </div>
+                <p class="text-xs text-gray-500 mt-1.5 text-center whitespace-nowrap max-w-20">Scheduled</p>
+            </div>
+            <div class="h-0.5 w-10 sm:w-16 flex-shrink-0 mx-1
+                {% if delivery.status == 'Cancelled' %}bg-gray-200
+                {% elif delivery.status != 'Scheduled' %}bg-green-400
+                {% else %}bg-gray-200{% endif %}"></div>
+        </div>
+
+        {# Status: Out for Delivery #}
+        <div class="flex items-center flex-shrink-0">
+            <div class="flex flex-col items-center">
+                <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold
+                    {% if delivery.status == 'Out for Delivery' %}ring-2 ring-offset-2 ring-mitra-gold bg-mitra-gold text-mitra-brown
+                    {% elif delivery.status == 'Cancelled' %}bg-gray-200 text-gray-400
+                    {% elif delivery.status in 'Arrived,Received' %}bg-green-500 text-white
+                    {% else %}bg-gray-200 text-gray-400{% endif %}">
+                    ✓
+                </div>
+                <p class="text-xs text-gray-500 mt-1.5 text-center whitespace-nowrap max-w-20">Out for Delivery</p>
+            </div>
+            <div class="h-0.5 w-10 sm:w-16 flex-shrink-0 mx-1
+                {% if delivery.status == 'Cancelled' %}bg-gray-200
+                {% elif delivery.status in 'Arrived,Received' %}bg-green-400
+                {% else %}bg-gray-200{% endif %}"></div>
+        </div>
+
+        {# Status: Arrived #}
+        <div class="flex items-center flex-shrink-0">
+            <div class="flex flex-col items-center">
+                <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold
+                    {% if delivery.status == 'Arrived' %}ring-2 ring-offset-2 ring-mitra-gold bg-mitra-gold text-mitra-brown
+                    {% elif delivery.status == 'Cancelled' %}bg-gray-200 text-gray-400
+                    {% elif delivery.status == 'Received' %}bg-green-500 text-white
+                    {% else %}bg-gray-200 text-gray-400{% endif %}">
+                    ✓
+                </div>
+                <p class="text-xs text-gray-500 mt-1.5 text-center whitespace-nowrap max-w-20">Arrived</p>
+            </div>
+            <div class="h-0.5 w-10 sm:w-16 flex-shrink-0 mx-1
+                {% if delivery.status == 'Cancelled' %}bg-gray-200
+                {% elif delivery.status == 'Received' %}bg-green-400
+                {% else %}bg-gray-200{% endif %}"></div>
+        </div>
+
+        {# Status: Received #}
+        <div class="flex items-center flex-shrink-0">
+            <div class="flex flex-col items-center">
+                <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold
+                    {% if delivery.status == 'Received' %}ring-2 ring-offset-2 ring-mitra-gold bg-mitra-gold text-mitra-brown
+                    {% elif delivery.status == 'Cancelled' %}bg-gray-200 text-gray-400
+                    {% else %}bg-gray-200 text-gray-400{% endif %}">
+                    ✓
+                </div>
+                <p class="text-xs text-gray-500 mt-1.5 text-center whitespace-nowrap max-w-20">Received</p>
+            </div>
+        </div>
+        {% if delivery.status == 'Cancelled' %}
+        <div class="ml-4 px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold flex-shrink-0">CANCELLED</div>
+        {% endif %}
+    </div>
+</div>
+
+{# ── Status change log ── #}
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+    <div class="px-5 py-4 border-b border-gray-100">
+        <h3 class="font-bold text-gray-700">Activity Log</h3>
+    </div>
+    <div class="divide-y divide-gray-50">
+        {% for log in status_logs %}
+        <div class="px-5 py-3.5 flex items-start gap-4">
+            <div class="w-2 h-2 rounded-full mt-1.5 flex-shrink-0
+                {% if log.new_status == 'Received'         %}bg-green-500
+                {% elif log.new_status == 'Out for Delivery'%}bg-purple-500
+                {% elif log.new_status == 'Arrived'         %}bg-orange-500
+                {% elif log.new_status == 'Cancelled'       %}bg-red-500
+                {% else %}bg-blue-400{% endif %}">
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold text-gray-800">
+                    {% if log.old_status %}{{ log.old_status }} → {% endif %}{{ log.new_status }}
+                </p>
+                {% if log.notes %}
+                <p class="text-xs text-gray-500 mt-0.5">{{ log.notes }}</p>
+                {% endif %}
+            </div>
+            <div class="text-right flex-shrink-0">
+                <p class="text-xs text-gray-400 font-mono">{{ log.changed_at|date:"M d, g:i A" }}</p>
+                <p class="text-xs text-gray-400">{{ log.changed_by.fullname|default:"System" }}</p>
+            </div>
+        </div>
+        {% empty %}
+        <div class="px-5 py-6 text-center text-gray-400 text-sm">No activity logged yet.</div>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}

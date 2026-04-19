@@ -31,8 +31,16 @@ def dashboard_view(request):
         from inventory.models import Inventory
         from sales.models import Order
         from architecture.models import Project
+        from delivery.models import Delivery
+        from procurement.models import ProcurementOrder
         from django.db.models import F, Sum, Count
         from types import SimpleNamespace
+        from django.utils import timezone as tz
+
+        today = tz.localdate()
+
+        total_materials  = Material.objects.filter(is_active=True).count()
+        total_suppliers  = Supplier.objects.filter(status='Active').count()
 
         # Inside the try block, add:
         from architecture.models import Project
@@ -44,12 +52,15 @@ def dashboard_view(request):
         except Exception:
             pass
 
-        total_materials  = Material.objects.filter(is_active=True).count()
-        total_suppliers  = Supplier.objects.filter(status='Active').count()
         # IDs of materials that have an Inventory row
         materials_with_inv = set(
             Inventory.objects.values_list('material_id', flat=True)
         )
+
+        scheduled_deliveries = Delivery.objects.filter(
+            status__in=['Scheduled', 'Out for Delivery'],
+            schedule_date=today
+        ).count()
 
         # Low-stock count: items whose quantity is at or below their reorder level
         # This includes:
@@ -115,9 +126,25 @@ def dashboard_view(request):
             order_date__month=now.month
         ).aggregate(total=Sum('total_amount'))['total'] or 0
 
+        # Phase 7: active procurement orders
+        active_procurement = ProcurementOrder.objects.filter(
+            status__in=['Draft', 'Submitted', 'Confirmed', 'Shipped']
+        ).count()
+
+        # Reorder alerts from procurement
+        reorder_needed = Inventory.objects.filter(
+            quantity__lte=F('material__reorder_level'),
+            material__is_active=True,
+            material__is_sales_inventory=True
+        ).count()
+
     except Exception:
         total_materials = total_suppliers = low_stock_items = out_of_stock = 0
         pending_orders = 0
+        ongoing_projects = 0
+        scheduled_deliveries = 0
+        active_procurement = 0
+        reorder_needed = (0,) * 9
         pending_orders_detail = []
         month_revenue = 0
 
@@ -133,12 +160,14 @@ def dashboard_view(request):
             'pending_orders': pending_orders,
             'low_stock_items': low_stock_items,
             'ongoing_projects': ongoing_projects,
-            'scheduled_deliveries': 0,
+            'scheduled_deliveries': scheduled_deliveries,
             # Phase 2 stats (available now)
             'total_materials':  total_materials,
             'total_suppliers':  total_suppliers,
             'out_of_stock': out_of_stock,
             'month_revenue': month_revenue,
+            'active_procurement': active_procurement,
+            'reorder_needed': reorder_needed,
         }
     }
 

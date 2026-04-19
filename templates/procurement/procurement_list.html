@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+{% block title %}Procurement Orders{% endblock %}
+{% block page_header %}Procurement Orders{% endblock %}
+
+{% block content %}
+
+<div class="flex items-center justify-between mb-6">
+    <div>
+        <h2 class="text-xl font-bold text-gray-800">Procurement Orders</h2>
+        <p class="text-sm text-gray-500 mt-0.5">{{ counts.all }} total order{{ counts.all|pluralize }}</p>
+    </div>
+    <div class="flex gap-2">
+        <a href="{% url 'procurement:procurement_dashboard' %}"
+           class="inline-flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200
+                  text-gray-700 font-semibold text-sm px-3 py-2.5 rounded-lg transition-colors">
+            Dashboard
+        </a>
+        <a href="{% url 'procurement:procurement_create' %}"
+           class="inline-flex items-center gap-2 bg-mitra-gold hover:bg-mitra-gold-dark
+                  text-mitra-brown font-semibold text-sm px-4 py-2.5 rounded-lg transition-colors shadow-sm">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path d="M12 4v16m8-8H4"/>
+            </svg>
+            New Order
+        </a>
+    </div>
+</div>
+
+{# Status tabs #}
+<div class="flex flex-wrap gap-2 mb-5">
+    <a href="{% url 'procurement:procurement_list' %}"
+       class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
+              {% if not status_filter %}bg-mitra-gold text-mitra-brown{% else %}bg-white text-gray-600 border border-gray-200 hover:bg-gray-50{% endif %}">
+        All ({{ counts.all }})
+    </a>
+    <a href="?status=Draft"
+       class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
+              {% if status_filter == 'Draft' %}bg-gray-500 text-white{% else %}bg-white text-gray-600 border border-gray-200 hover:bg-gray-50{% endif %}">
+        Draft ({{ counts.draft }})
+    </a>
+    <a href="?status=Submitted"
+       class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
+              {% if status_filter == 'Submitted' %}bg-blue-500 text-white{% else %}bg-white text-gray-600 border border-gray-200 hover:bg-gray-50{% endif %}">
+        Submitted ({{ counts.submitted }})
+    </a>
+    <a href="?status=Confirmed"
+       class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
+              {% if status_filter == 'Confirmed' %}bg-indigo-500 text-white{% else %}bg-white text-gray-600 border border-gray-200 hover:bg-gray-50{% endif %}">
+        Confirmed ({{ counts.confirmed }})
+    </a>
+    <a href="?status=Shipped"
+       class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
+              {% if status_filter == 'Shipped' %}bg-purple-500 text-white{% else %}bg-white text-gray-600 border border-gray-200 hover:bg-gray-50{% endif %}">
+        Shipped ({{ counts.shipped }})
+    </a>
+    <a href="?status=Received"
+       class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
+              {% if status_filter == 'Received' %}bg-green-500 text-white{% else %}bg-white text-gray-600 border border-gray-200 hover:bg-gray-50{% endif %}">
+        Received ({{ counts.received }})
+    </a>
+</div>
+
+{# Search & supplier filter #}
+<form method="get" class="flex flex-wrap gap-3 mb-5 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+    {% if status_filter %}<input type="hidden" name="status" value="{{ status_filter }}">{% endif %}
+    <input type="text" name="search" value="{{ search }}"
+           class="form-input flex-1 min-w-44" placeholder="Search supplier, DR number, notes...">
+    <select name="supplier" class="form-input w-auto min-w-44">
+        <option value="">All Suppliers</option>
+        {% for supplier in suppliers %}
+        <option value="{{ supplier.pk }}" {% if supplier_filter == supplier.pk|stringformat:"i" %}selected{% endif %}>
+            {{ supplier.company_name }}
+        </option>
+        {% endfor %}
+    </select>
+    <button type="submit"
+            class="px-4 py-2 bg-mitra-gold text-mitra-brown text-sm font-semibold rounded-lg hover:bg-mitra-gold-dark transition-colors">
+        Filter
+    </button>
+    <a href="{% url 'procurement:procurement_list' %}"
+       class="px-4 py-2 bg-gray-100 text-gray-600 text-sm font-semibold rounded-lg hover:bg-gray-200 transition-colors">
+        Clear
+    </a>
+</form>
+
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+    <table class="w-full text-sm">
+        <thead>
+            <tr class="bg-gray-50 border-b border-gray-100">
+                <th class="text-left px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide w-20">PO#</th>
+                <th class="text-left px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Supplier</th>
+                <th class="text-left px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Order Date</th>
+                <th class="text-left px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Expected</th>
+                <th class="text-center px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Items</th>
+                <th class="text-right px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Total</th>
+                <th class="text-center px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Status</th>
+                <th class="text-center px-5 py-3.5 font-semibold text-gray-600 text-xs uppercase tracking-wide">Actions</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+            {% for po in orders %}
+            <tr class="hover:bg-gray-50 transition-colors {% if po.is_overdue %}bg-red-50{% endif %}">
+                <td class="px-5 py-3.5 font-mono text-xs font-bold text-gray-500">
+                    PO#{{ po.pk }}
+                    {% if po.is_overdue %}
+                    <span class="block text-xs font-bold text-red-500 mt-0.5">OVERDUE</span>
+                    {% endif %}
+                </td>
+                <td class="px-5 py-3.5">
+                    <div class="font-semibold text-gray-800">{{ po.supplier.company_name }}</div>
+                    <div class="text-xs text-gray-400">{{ po.order_method }}</div>
+                </td>
+                <td class="px-5 py-3.5 text-xs text-gray-500">
+                    {{ po.order_date|date:"M d, Y" }}
+                </td>
+                <td class="px-5 py-3.5 text-xs {% if po.is_overdue %}text-red-600 font-semibold{% else %}text-gray-500{% endif %}">
+                    {{ po.expected_delivery_date|date:"M d, Y"|default:"—" }}
+                </td>
+                <td class="px-5 py-3.5 text-center text-xs text-gray-500">{{ po.total_items }}</td>
+                <td class="px-5 py-3.5 text-right font-mono font-bold text-gray-800">
+                    ₱{{ po.total_amount|floatformat:2 }}
+                </td>
+                <td class="px-5 py-3.5 text-center">
+                    <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold
+                        {% if po.status == 'Draft'     %}bg-gray-100 text-gray-600
+                        {% elif po.status == 'Submitted'%}bg-blue-100 text-blue-700
+                        {% elif po.status == 'Confirmed'%}bg-indigo-100 text-indigo-700
+                        {% elif po.status == 'Shipped'  %}bg-purple-100 text-purple-700
+                        {% elif po.status == 'Received' %}bg-green-100 text-green-700
+                        {% elif po.status == 'Cancelled'%}bg-red-100 text-red-600
+                        {% else %}bg-gray-100 text-gray-500{% endif %}">
+                        {{ po.status }}
+                    </span>
+                </td>
+                <td class="px-5 py-3.5 text-center">
+                    <a href="{% url 'procurement:procurement_detail' po.pk %}"
+                       class="text-xs text-blue-600 hover:text-blue-800 font-semibold">
+                        View →
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" class="px-5 py-10 text-center text-gray-400">
+                    No procurement orders found.
+                    <a href="{% url 'procurement:procurement_create' %}"
+                       class="text-mitra-gold hover:underline ml-1">Create the first one</a>.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}
